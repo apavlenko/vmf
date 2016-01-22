@@ -313,6 +313,9 @@ void MetadataStream::internalAdd(const std::shared_ptr<Metadata>& spMetadata)
         }
     });
     m_oMetadataSet.push_back(spMetadata);
+
+    // notify schema & update stats
+    metadataAdded( spMetadata->getId() );
 }
 
 bool MetadataStream::remove( const IdType& id )
@@ -328,7 +331,12 @@ bool MetadataStream::remove( const IdType& id )
     // Found it, let's remove it
     if( it != m_oMetadataSet.end() )
     {
-        (*it)->setStreamRef(nullptr);
+        std::shared_ptr< Metadata > spMetadata = *it;
+
+        // notify schema & update stats
+        metadataRemoved( id );
+
+        spMetadata->setStreamRef(nullptr);
         m_oMetadataSet.erase( it );
 
         // Also remove any reference to it. There might be other shared pointers pointing to this object, so that
@@ -834,6 +842,54 @@ void MetadataStream::convertFrameIndexToTimestamp(
     }
     if (i == videoSegments.size())
         timestamp = Metadata::UNDEFINED_TIMESTAMP, duration = Metadata::UNDEFINED_DURATION;
+}
+
+void MetadataStream::metadataAdded( const IdType& id ) const
+{
+    const std::shared_ptr< Metadata > spMetadata = getById( id );
+    if( !spMetadata ) return;
+    const std::shared_ptr< MetadataDesc > desc = spMetadata->getDesc();
+    if( !desc ) return;
+    const std::shared_ptr< MetadataSchema > schema = getSchema( desc->getSchemaName() );
+    if( !schema ) return;
+    std::shared_ptr< Statistics > stats = schema->getStatistics();
+    if( !stats ) return;
+    stats->metadataAdded( spMetadata );
+}
+
+void MetadataStream::metadataRemoved( const IdType& id ) const
+{
+    const std::shared_ptr< Metadata > spMetadata = getById( id );
+    if( !spMetadata ) return;
+    const std::shared_ptr< MetadataDesc > desc = spMetadata->getDesc();
+    if( !desc ) return;
+    const std::shared_ptr< MetadataSchema > schema = getSchema( desc->getSchemaName() );
+    if( !schema ) return;
+    std::shared_ptr< Statistics > stats = schema->getStatistics();
+    if( !stats ) return;
+    stats->metadataRemoved( spMetadata );
+}
+
+void MetadataStream::metadataChanged( const IdType& id, const std::string& fieldName ) const
+{
+    const std::shared_ptr< Metadata > spMetadata = getById( id );
+    if( !spMetadata ) return;
+    const std::shared_ptr< MetadataDesc > desc = spMetadata->getDesc();
+    if( !desc ) return;
+    const std::shared_ptr< MetadataSchema > schema = getSchema( desc->getSchemaName() );
+    if( !schema ) return;
+    std::shared_ptr< Statistics > stats = schema->getStatistics();
+    if( !stats ) return;
+    stats->metadataChanged( spMetadata, fieldName );
+}
+
+void MetadataStream::setStatistics( std::shared_ptr<Statistics>& stats, const std::string& sSchemaName )
+{
+    // TODO: on schema/stream add/remove/load events, set also these schema stats params accordingly
+    stats->setMetadataStream( this );
+    const std::shared_ptr< MetadataSchema > schema = getSchema( sSchemaName );
+    if( schema != nullptr )
+        schema->setStatistics( stats );
 }
 
 }//namespace vmf
