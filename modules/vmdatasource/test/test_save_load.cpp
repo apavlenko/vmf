@@ -728,7 +728,7 @@ TEST_F(TestSaveLoadMetadata, DeleteProperty)
         anotherMd->addValue(vmf::Variant(TEST_VALUE_2));
         stream.add(md);
         stream.add(anotherMd);
-        ASSERT_TRUE(stream.save());
+        ASSERT_NO_THROW(stream.save());
         stream.close();
     }
 
@@ -741,7 +741,7 @@ TEST_F(TestSaveLoadMetadata, DeleteProperty)
         vmf::MetadataSet descSet = schemaSet.queryByName(TEST_DESC_NAME);
         ASSERT_EQ(1, descSet.size());
         stream.remove(descSet);
-        ASSERT_TRUE(stream.save());
+        ASSERT_NO_THROW(stream.save());
         stream.close();
     }
 
@@ -1411,11 +1411,11 @@ TEST_P(TestSaveLoadCompression, Checksum)
         stream.setChecksum(checksum1);
         if(name == "unregistered")
         {
-            ASSERT_FALSE(stream.save(name));
+            ASSERT_THROW(stream.save(name), vmf::IncorrectParamException);
         }
         else
         {
-            ASSERT_TRUE(stream.save(name));
+            ASSERT_NO_THROW(stream.save(name));
         }
         stream.close();
     }
@@ -1446,7 +1446,7 @@ TEST_P(TestSaveLoadCompression, CheckIgnoreUnknownCompressor)
             std::string checksum1 = stream.computeChecksum();
             stream.setChecksum(checksum1);
 
-            ASSERT_TRUE(stream.save(name));
+            ASSERT_NO_THROW(stream.save(name));
             stream.close();
         }
 

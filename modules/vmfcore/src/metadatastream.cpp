@@ -104,56 +104,47 @@ bool MetadataStream::load(const std::string& sSchemaName, const std::string& sMe
     }
 }
 
-bool MetadataStream::save(const vmf_string &compressorId)
+void MetadataStream::save(const vmf_string &compressorId)
 {
     dataSourceCheck();
-    try
+    if( (m_eMode & Update) && !m_sFilePath.empty() )
     {
-        if( (m_eMode & Update) && !m_sFilePath.empty() )
+        dataSource->setCompressor(compressorId);
+        dataSource->remove(removedIds);
+        removedIds.clear();
+
+        for(auto& schemaPtr : removedSchemas)
         {
-            dataSource->setCompressor(compressorId);
-            dataSource->remove(removedIds);
-            removedIds.clear();
-
-            for(auto& schemaPtr : removedSchemas)
+            dataSource->removeSchema(schemaPtr.first);
+            // Empty schema name is used to delete all schemas in the file
+            // That's why there's no need to continue the loop
+            if(schemaPtr.first == "")
             {
-                dataSource->removeSchema(schemaPtr.first);
-                // Empty schema name is used to delete all schemas in the file
-                // That's why there's no need to continue the loop
-                if(schemaPtr.first == "")
-                {
-                    break;
-                }
+                break;
             }
-            removedSchemas.clear();
-
-            for(auto& p : m_mapSchemas)
-            {
-                dataSource->saveSchema(p.first, *this);
-                dataSource->save(p.second);
-            }
-
-            dataSource->saveVideoSegments(videoSegments);
-
-            dataSource->save(nextId);
-
-            if(!m_sChecksumMedia.empty())
-                dataSource->saveChecksum(m_sChecksumMedia);
-
-            addedIds.clear();
-
-            dataSource->pushChanges();
-
-            return true;
         }
-        else
+        removedSchemas.clear();
+
+        for(auto& p : m_mapSchemas)
         {
-            return false;
+            dataSource->saveSchema(p.first, *this);
+            dataSource->save(p.second);
         }
+
+        dataSource->saveVideoSegments(videoSegments);
+
+        dataSource->save(nextId);
+
+        if(!m_sChecksumMedia.empty())
+            dataSource->saveChecksum(m_sChecksumMedia);
+
+        addedIds.clear();
+
+        dataSource->pushChanges();
     }
-    catch (...)
+    else
     {
-        return false;
+        VMF_EXCEPTION(DataStorageException, "The previous file has not been closed!");
     }
 }
 
@@ -178,40 +169,33 @@ bool MetadataStream::reopen( OpenMode eMode )
     return false;
 }
 
-bool MetadataStream::saveTo(const std::string& sFilePath, const vmf_string& compressorId)
+void MetadataStream::saveTo(const std::string& sFilePath, const vmf_string& compressorId)
 {
     if((m_eMode & ReadOnly) || (m_eMode & Update))
-        throw std::runtime_error("The previous file has not been closed!");
-    try
     {
-        std::shared_ptr<IDataSource> oldDataSource = dataSource;
-        dataSource = ObjectFactory::getInstance()->getDataSource();
-        if (!dataSource)
-        {
-            dataSource = oldDataSource;
-            return false;
-        }
+        VMF_EXCEPTION(DataStorageException, "The previous file has not been closed!");
+    }
 
-        // Change file path to make reopen() happy
-        m_sFilePath = sFilePath;
-
-        bool bRet = false;
-
-        // Do not load anything from the file by calling reopen()
-        if( this->reopen( Update ) )
-        {
-            dataSource->clear();
-            bRet = this->save(compressorId);
-        }
-        dataSource->closeFile();
-
+    std::shared_ptr<IDataSource> oldDataSource = dataSource;
+    dataSource = ObjectFactory::getInstance()->getDataSource();
+    if (!dataSource)
+    {
         dataSource = oldDataSource;
-        return bRet;
+        VMF_EXCEPTION(DataStorageException, "Failed to get data source object");;
     }
-    catch (const DataStorageException& /* unused */)
+
+    // Change file path to make reopen() happy
+    m_sFilePath = sFilePath;
+
+    // Do not load anything from the file by calling reopen()
+    if( this->reopen( Update ) )
     {
-        return false;
+        dataSource->clear();
+        this->save(compressorId);
     }
+    dataSource->closeFile();
+
+    dataSource = oldDataSource;
 }
 
 void MetadataStream::close()

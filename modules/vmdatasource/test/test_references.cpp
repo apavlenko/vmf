@@ -631,7 +631,7 @@ TEST_F(TestSaveLoadReference, NonSimpleReferencesOrder)
         ASSERT_EQ(item2->getFirstReference(TEST_DESC_NAME_1)->getId(), 5);
         ASSERT_EQ(item5->getFirstReference(TEST_DESC_NAME_1)->getId(), 4);
 
-        ASSERT_TRUE(stream.save());
+        ASSERT_NO_THROW(stream.save());
 
         stream.close();
     }

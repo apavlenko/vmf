@@ -147,7 +147,7 @@ public:
     * (empty string means no compression)
     * \return Save operation result
     */
-    bool save(const vmf_string& compressorId = vmf_string());
+    void save(const vmf_string& compressorId = vmf_string());
 
 
     /*!
@@ -157,7 +157,7 @@ public:
     * (empty string means no compression)
     * \return true if succeed.
     */
-    bool saveTo(const std::string& sFilePath, const vmf_string& compressorId = vmf_string() );
+    void saveTo(const std::string& sFilePath, const vmf_string& compressorId = vmf_string() );
 
 
     /*!
