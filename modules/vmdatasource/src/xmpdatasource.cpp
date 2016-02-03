@@ -426,7 +426,10 @@ void XMPDataSource::remove(const vector<IdType>& ids)
          * instead of saving to file we just put everything to buffer and get back.
          * To be fixed to eliminate re-reading in long term future.
          */
-        serializeAndParse();
+        if(ids.size() > 0)
+        {
+            serializeAndParse();
+        }
     }
     catch(const XMP_Error& e)
     {
