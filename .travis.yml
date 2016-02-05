@@ -3,6 +3,9 @@ sudo: false
 language: cpp
 git:
   depth : 1
+branches:
+  only:
+    - vmf-3.0
 os:
   - linux
   - osx
@@ -32,7 +35,7 @@ script:
   - cd ./bin/
   - ./unit-tests
   - ./unit-tests-ds
-  - if [ -f vmf_java.jar ]; then java -Djava.library.path=../lib -cp .:vmf_java.jar:vmf_java_test.jar:junit-4.11.jar org.junit.runner.JUnitCore VmfTestSuite; fi
+  - if [ -f vmf_java.jar ] && [ "$VMF_SHARED" == "ON" ]; then java -Djava.library.path=../lib -cp .:vmf_java.jar:vmf_java_test.jar:junit-4.11.jar org.junit.runner.JUnitCore VmfTestSuite; fi
   - if [ $TRAVIS_OS_NAME == osx ] && [ $CC  == clang ]; then cd ..; mkdir ios; cd ios; python ../../vmf/platforms/ios/build_ios_framework.py $(pwd); fi
 after_success:
   - if [ "$VMF_GCOV_OPTS" != "" ]; then coveralls --exclude build/CMakeFiles --exclude vmf/3rdparty --exclude vmf/modules/vmfcore/test --exclude vmf/modules/vmdatasource/test --gcov-options '\-lp' --gcov gcov-4.8 --root ../.. --build-root ..; fi
