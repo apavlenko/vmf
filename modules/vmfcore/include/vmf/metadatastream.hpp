@@ -145,7 +145,6 @@ public:
     * \brief Save loaded data to media file
     * \param compressorId String identifying compression to be used at saving
     * (empty string means no compression)
-    * \return Save operation result
     */
     void save(const vmf_string& compressorId = vmf_string());
 
@@ -155,7 +154,6 @@ public:
     * \param sFilePath the path of the new file.
     * \param compressorId String identifying compression to be used at saving
     * (empty string means no compression)
-    * \return true if succeed.
     */
     void saveTo(const std::string& sFilePath, const vmf_string& compressorId = vmf_string() );
 

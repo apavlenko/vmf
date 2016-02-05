@@ -181,7 +181,7 @@ void MetadataStream::saveTo(const std::string& sFilePath, const vmf_string& comp
     if (!dataSource)
     {
         dataSource = oldDataSource;
-        VMF_EXCEPTION(DataStorageException, "Failed to get data source object");;
+        VMF_EXCEPTION(DataStorageException, "Failed to get data source object");
     }
 
     // Change file path to make reopen() happy
@@ -539,6 +539,7 @@ void MetadataStream::clear()
     m_sFilePath = "";
     m_oMetadataSet.clear();
     m_mapSchemas.clear();
+    removedSchemas.clear();
     removedIds.clear();
     addedIds.clear();
     videoSegments.clear();
