@@ -11,8 +11,8 @@ compiler:
   - clang
 addons:
   apt:
-    sources: ['kalakris-cmake', 'ubuntu-toolchain-r-test', 'llvm-toolchain-precise-3.7']
-    packages: ['cmake', 'g++-4.8', 'clang-3.7']
+    sources: ['george-edison55-precise-backports', 'ubuntu-toolchain-r-test', 'llvm-toolchain-precise-3.7']
+    packages: ['cmake', 'cmake-data', 'g++-4.8', 'clang-3.7']
 before_install:
   - if [ $TRAVIS_OS_NAME == linux ] && [ $CC  == gcc ]; then export VMF_GCOV_OPTS='-DCMAKE_BUILD_TYPE=Debug -DCODE_COVERAGE=ON'; fi
   - if [ "$VMF_GCOV_OPTS" != "" ]; then pip install --user cpp-coveralls; fi
