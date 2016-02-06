@@ -110,8 +110,11 @@ void MetadataStream::save(const vmf_string &compressorId)
     if( (m_eMode & Update) && !m_sFilePath.empty() )
     {
         dataSource->setCompressor(compressorId);
-        dataSource->remove(removedIds);
-        removedIds.clear();
+        if(!removedIds.empty())
+        {
+            dataSource->remove(removedIds);
+            removedIds.clear();
+        }
 
         for(auto& schemaPtr : removedSchemas)
         {
