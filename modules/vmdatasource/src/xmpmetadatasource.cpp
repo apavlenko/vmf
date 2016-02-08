@@ -115,7 +115,7 @@ void XMPMetadataSource::saveProperty(const MetadataSet& property, const MetaStri
     }
 
     savePropertyName(thisPropertyPath, propertyName);
-    //////!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    //!!! POSSIBLY THE BUG IS HERE
     xmp->SetStructField(VMF_NS, thisPropertyPath.c_str(), VMF_NS, PROPERTY_SET, nullptr, kXMP_PropValueIsArray);
     MetaString thisPropertySetPath;
     SXMPUtils::ComposeStructFieldPath(VMF_NS, thisPropertyPath.c_str(), VMF_NS, PROPERTY_SET, &thisPropertySetPath);
