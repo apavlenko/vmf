@@ -51,10 +51,16 @@ int compress_custom(const string& videoFile)
     Compressor::registerNew(compressor);
 
     cout << "Trying to save metadata using unregister compressor..." << endl;
-    if (mdStream.save("unknown_compressor_ID"))
+    try
+    {
+        mdStream.save("unknown_compressor_ID");
+        //there should be an exception
         cout << "VMF error: it shouldn't allow saving with unregistered compressor" << endl;
-    else
+    }
+    catch(IncorrectParamException&)
+    {
         cout << "VMF is right: it can't use unregistered compressor!" << endl;
+    }
 
     cout << "Saving metadata using custom just registered compressor (" << compressor->getId() << ")..." << endl;
     mdStream.save(compressor->getId());

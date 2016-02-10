@@ -86,7 +86,7 @@ int main(int argc, char* argv[])
         stream.close();
 
         //reopen stream with saved metadata
-        stream.reopen();
+        stream.reopen(MetadataStream::Update);
 
         //load metadata in memory
         stream.load();
