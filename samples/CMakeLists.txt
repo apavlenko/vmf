@@ -14,3 +14,7 @@ if(BUILD_QT_SAMPLES)
   add_subdirectory(qt/ski-resort)
   add_subdirectory(qt/photo-book)
 endif()
+
+if(BUILD_JAVA_API)
+  add_subdirectory(java)
+endif()
