@@ -1,24 +1,22 @@
 package com.intel.vmf.sample;
 
-import com.intel.vmf.MetadataStream;
-import com.intel.vmf.Metadata;
-import com.intel.vmf.MetadataSet;
-import com.intel.vmf.MetadataDesc;
-
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
 
 import com.intel.vmf.FieldDesc;
+import com.intel.vmf.Metadata;
+import com.intel.vmf.MetadataDesc;
+import com.intel.vmf.MetadataSchema;
+import com.intel.vmf.MetadataSet;
+import com.intel.vmf.MetadataStream;
 import com.intel.vmf.Variant;
 import com.intel.vmf.Vmf;
-import com.intel.vmf.MetadataSchema;
 
 
 public class MetadataManipulation
 {  
-    protected final static String srcFile = "BlueSquare.avi";
     protected final static String dstFile = "test.avi";
     
     protected static void copy (String srcFile, String dstFile) throws IOException 
@@ -50,8 +48,6 @@ public class MetadataManipulation
     public static void addMetadata (String dstFile) throws IOException
     {
         System.out.println("\nAdd metadata.\n" + "[stream]: " + dstFile + "\n");
-        
-        copy(srcFile, dstFile);
         
         stream = new MetadataStream ();
         schema1 = new MetadataSchema("first_schema");
@@ -121,7 +117,7 @@ public class MetadataManipulation
         stream.close();
     }
     
-    public static void printMetadataStructure() throws IOException 
+    public static void printMetadataStructure(String dstFile) throws IOException 
     {
         System.out.println("\nPrinting metadata structure.\n" + "[stream]: " + dstFile + "\n");
         
@@ -163,7 +159,7 @@ public class MetadataManipulation
         stream.close();
     }
 
-    public static void removeMetadata (String schemaName, String setName)
+    public static void removeMetadata (String schemaName, String setName, String dstFile)
     {
         System.out.println("\nRemoving metadata:\n" + "[stream]: " + dstFile + "\n" + 
         (schemaName.isEmpty() ? "*" : schemaName + '/' + (setName.isEmpty() ? "*" : setName) ) + "\n");
@@ -199,13 +195,20 @@ public class MetadataManipulation
     
     public static void main (String[] args) throws IOException 
     {
+        final String srcFile = args[1];
+        
+        if (srcFile == null || srcFile.isEmpty())
+            throw new java.lang.UnsupportedOperationException("Video file path is not passed.");
+        
+        copy(srcFile, dstFile);
+        
         Vmf.initialize();
         
         addMetadata (dstFile);
         
-        printMetadataStructure ();
+        printMetadataStructure (dstFile);
         
-        removeMetadata("first_schema", "person");
+        removeMetadata("first_schema", "person", dstFile);
         
         Vmf.terminate ();
     }
