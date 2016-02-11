@@ -60,9 +60,9 @@ public class VmfMetadataStreamTest
     protected MetadataStream stream;
     protected MetadataSchema schema;
     
-    protected final FieldDesc fields[] = new FieldDesc [3];
+    protected FieldDesc fields[];
     
-    protected final ReferenceDesc refs[] = new ReferenceDesc [3];
+    protected ReferenceDesc refs[];
     
     protected MetadataDesc mdDesc;
     
@@ -72,11 +72,13 @@ public class VmfMetadataStreamTest
     @Before
     public void setUp ()
     {
+        fields = new FieldDesc [3];
     	schema = new MetadataSchema ("test_schema");
         fields[0] = new FieldDesc ("name", Variant.type_string, false);
         fields[1] = new FieldDesc ("last name", Variant.type_string, false);
         fields[2] = new FieldDesc ("age", Variant.type_integer, false);
         
+        refs = new ReferenceDesc [3];
         refs[0] = new ReferenceDesc ("friend");
         refs[1] = new ReferenceDesc ("colleague", false, true);
         refs[2] = new ReferenceDesc ("spouse", true, false);
@@ -244,5 +246,23 @@ public class VmfMetadataStreamTest
         
         VideoSegment vs[] = stream.getAllVideoSegments ();
         assertEquals(3, vs.length);
+    }
+    
+
+    @Test
+    public void testDeleteByGC()
+    {
+        stream = null;
+        schema = null;
+        
+        mdDesc = null;
+        
+        md1 = null;
+        md2 = null;
+        
+        fields = null;
+        refs = null;
+        
+        System.gc();
     }
 }
