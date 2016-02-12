@@ -11,6 +11,30 @@ using namespace vmf;
 
 /*
 * Class:     com_intel_vmf_Log
+* Method:    n_log
+* Signature: (ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V
+*/
+JNIEXPORT void JNICALL Java_com_intel_vmf_Log_n_1log (JNIEnv *env, jclass, jint level, jstring msg, jstring func, jstring file, jint line);
+
+
+JNIEXPORT void JNICALL Java_com_intel_vmf_Log_n_1log (JNIEnv *env, jclass, jint level, jstring msg, jstring func, jstring file, jint line)
+{
+    const char* message = env->GetStringUTFChars(msg, NULL);
+    const char* function = env->GetStringUTFChars(func, NULL);
+    const char* path = env->GetStringUTFChars(file, NULL);
+
+    std::string sMsg(message);
+    env->ReleaseStringUTFChars (msg, message);
+    std::string sFunc(function);
+    env->ReleaseStringUTFChars(func, function);
+    std::string sPath(path);
+    env->ReleaseStringUTFChars(file, path);
+
+    Log::log((LogLevel)level, sMsg, sFunc, sPath, (int)line);
+}
+
+/*
+* Class:     com_intel_vmf_Log
 * Method:    n_logToFile
 * Signature: (Ljava/lang/String;)V
 */
