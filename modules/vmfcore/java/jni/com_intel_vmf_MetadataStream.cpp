@@ -414,7 +414,7 @@ JNIEXPORT jlong JNICALL Java_com_intel_vmf_MetadataStream_n_1addInternal (JNIEnv
         if ((obj == NULL) || (obj->get() == NULL))
             VMF_EXCEPTION(NullPointerException, "Stream is null pointer.");
 
-        if ((mdInt == NULL) || (*mdInt == NULL) || (mdInt->get() == NULL))
+        if ((mdInt == NULL) || (mdInt->get() == NULL))
             VMF_EXCEPTION(NullPointerException, "Metadata internal is null pointer.");
 
         return (jlong)(*obj)->add(*mdInt);
@@ -742,15 +742,19 @@ JNIEXPORT jboolean JNICALL Java_com_intel_vmf_MetadataStream_n_1importSet (JNIEn
         std::shared_ptr <MetadataStream>* obj = (std::shared_ptr <MetadataStream>*) self;
         std::shared_ptr <MetadataStream>* srcStream = (std::shared_ptr <MetadataStream>*) srcStreamAddr;
         std::shared_ptr <MetadataSet>* srcSet = (std::shared_ptr <MetadataSet>*) srcSetAddr;
-        std::shared_ptr <MetadataSet>* setFalure = (std::shared_ptr <MetadataSet>*) setFalureAddr;
 
-        if ((obj == NULL) || (obj->get() == NULL) || (srcStream == NULL) || (srcStream == NULL) || (srcStream->get() == NULL))
+        if ((obj == NULL) || (obj->get() == NULL) || (srcStream == NULL) || (srcStream->get() == NULL))
             return JNI_FALSE;
 
-        if ((srcSet == NULL) || (*srcSet == NULL) || (srcSet->get() == NULL))
+        if ((srcSet == NULL) || (srcSet->get() == NULL))
             return JNI_FALSE;
 
-        return (jboolean)(*obj)->import((**srcStream), (**srcSet), (long long)dstFrameIndex, (long long)srcFrameIndex, (long long)numOfFrames, setFalure->get());
+        std::shared_ptr <MetadataSet>* setFailure = (std::shared_ptr <MetadataSet>*) setFalureAddr;
+
+        if ((setFailure != NULL) && (*setFailure != NULL))
+            return (jboolean)(*obj)->import((**srcStream), (**srcSet), (long long)dstFrameIndex, (long long)srcFrameIndex, (long long)numOfFrames, setFailure->get());
+        else
+            return (jboolean)(*obj)->import((**srcStream), (**srcSet), (long long)dstFrameIndex, (long long)srcFrameIndex, (long long)numOfFrames);
     }
     catch (const std::exception &e)
     {
