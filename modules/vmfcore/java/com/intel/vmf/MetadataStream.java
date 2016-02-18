@@ -290,9 +290,6 @@ public class MetadataStream implements IQuery
         if (options.length != 2)
             throw new java.lang.IllegalArgumentException ("Argument must contain 2 elements");
         
-        if ((options[0] == null) || (options[1] == null))
-            throw new java.lang.NullPointerException ("Options should not be initialized");
-        
         return n_computeChecksum (nativeObj, options);
     }
     
