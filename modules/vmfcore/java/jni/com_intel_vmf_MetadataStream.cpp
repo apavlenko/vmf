@@ -770,37 +770,6 @@ JNIEXPORT jboolean JNICALL Java_com_intel_vmf_MetadataStream_n_1importSet (JNIEn
 
 /*
  * Class:     com_intel_vmf_MetadataStream
- * Method:    n_sortMdSetById
- * Signature: (J)V
- */
-JNIEXPORT void JNICALL Java_com_intel_vmf_MetadataStream_n_1sortMdSetById(JNIEnv *env, jclass, jlong self);
-
-
-JNIEXPORT void JNICALL Java_com_intel_vmf_MetadataStream_n_1sortMdSetById (JNIEnv *env, jclass, jlong self)
-{
-    static const char method_name[] = "MetadataStream::n_1sortMdSetById";
-
-    try
-    {
-        std::shared_ptr <MetadataStream>* obj = (std::shared_ptr <MetadataStream>*) self;
-
-        if ((obj == NULL) || (obj->get() == NULL))
-            VMF_EXCEPTION(NullPointerException, "Stream is null pointer.");
-
-        (*obj)->sortById();
-    }
-    catch (const std::exception &e)
-    {
-        throwJavaException(env, &e, method_name);
-    }
-    catch (...)
-    {
-        throwJavaException(env, 0, method_name);
-    }
-}
-
-/*
- * Class:     com_intel_vmf_MetadataStream
  * Method:    n_serialize
  * Signature: (JJ)Ljava/lang/String;
  */
@@ -857,7 +826,7 @@ JNIEXPORT void JNICALL Java_com_intel_vmf_MetadataStream_n_1deserialize (JNIEnv 
         if ((obj == NULL) || (obj->get() == NULL))
             VMF_EXCEPTION(NullPointerException, "Stream is null pointer.");
 
-        if ((reader == NULL) || (*reader == NULL) || (reader->get() == NULL))
+        if ((reader == NULL) || (reader->get() == NULL))
             VMF_EXCEPTION(NullPointerException, "Reader is null pointer.");
 
         const char* tmp = env->GetStringUTFChars(text, NULL);
@@ -911,14 +880,14 @@ JNIEXPORT jstring JNICALL Java_com_intel_vmf_MetadataStream_n_1computeChecksum__
 }
 
 /*
- * Class:     com_intel_vmf_MetadataStream
- * Method:    n_computeChecksum
- * Signature: (JJJ)Ljava/lang/String;
- */
-JNIEXPORT jstring JNICALL Java_com_intel_vmf_MetadataStream_n_1computeChecksum__JJJ(JNIEnv *env, jclass, jlong self, jlong XMPPacketSize, jlong XMPPacketOffset);
+* Class:     com_intel_vmf_MetadataStream
+* Method:    n_computeChecksum
+* Signature: (J[J)Ljava/lang/String;
+*/
+JNIEXPORT jstring JNICALL Java_com_intel_vmf_MetadataStream_n_1computeChecksum__J_3J (JNIEnv *env, jclass, jlong self, jlongArray options);
 
 
-JNIEXPORT jstring JNICALL Java_com_intel_vmf_MetadataStream_n_1computeChecksum__JJJ (JNIEnv *env, jclass, jlong self, jlong XMPPacketSize, jlong XMPPacketOffset)
+JNIEXPORT jstring JNICALL Java_com_intel_vmf_MetadataStream_n_1computeChecksum__J_3J(JNIEnv *env, jclass, jlong self, jlongArray options)
 {
     static const char method_name[] = "MetadataStream::n_1computeChecksum__JJJ";
 
@@ -929,10 +898,16 @@ JNIEXPORT jstring JNICALL Java_com_intel_vmf_MetadataStream_n_1computeChecksum__
         if ((obj == NULL) || (obj->get() == NULL))
             return 0;
 
-        long long packetSize = (long long)XMPPacketSize;
-        long long packetOffset = (long long)XMPPacketOffset;
+        jlong* cArray = env->GetLongArrayElements(options, 0);
+        long long packetSize;
+        long long packetOffset;
 
-        std::string result = (*obj)->computeChecksum(packetSize, packetOffset);
+        std::string result = (*obj)->computeChecksum (packetSize, packetOffset);
+        cArray[0] = (jlong)packetSize;
+        cArray[1] = (jlong)packetOffset;
+
+        env->ReleaseLongArrayElements(options, cArray, 0);
+
         return env->NewStringUTF(result.c_str());
     }
     catch (const std::exception &e)
