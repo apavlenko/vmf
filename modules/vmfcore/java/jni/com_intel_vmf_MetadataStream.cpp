@@ -414,7 +414,7 @@ JNIEXPORT jlong JNICALL Java_com_intel_vmf_MetadataStream_n_1addInternal (JNIEnv
         if ((obj == NULL) || (obj->get() == NULL))
             VMF_EXCEPTION(NullPointerException, "Stream is null pointer.");
 
-        if ((mdInt == NULL) || (mdInt->get() == NULL))
+        if ((mdInt == NULL) || (*mdInt == NULL) || (mdInt->get() == NULL))
             VMF_EXCEPTION(NullPointerException, "Metadata internal is null pointer.");
 
         return (jlong)(*obj)->add(*mdInt);
@@ -728,12 +728,12 @@ JNIEXPORT jlong JNICALL Java_com_intel_vmf_MetadataStream_n_1getAll (JNIEnv *env
  * Signature: (JJJJJJJ)Z
  */
 JNIEXPORT jboolean JNICALL Java_com_intel_vmf_MetadataStream_n_1importSet (JNIEnv *env, jclass, jlong self, jlong srcStreamAddr,
-                                                                          jlong srcSetAddr, jlong dstFrameIndex, jlong srcFrameIndex, jlong numOfFrames, jlong setFalureAddr);
+                                                                          jlong srcSetAddr, jlong dstFrameIndex, jlong srcFrameIndex, jlong numOfFrames, jlong setFailureAddr);
 
 
 JNIEXPORT jboolean JNICALL Java_com_intel_vmf_MetadataStream_n_1importSet (JNIEnv *env, jclass, jlong self, jlong srcStreamAddr,
                                                                            jlong srcSetAddr, jlong dstFrameIndex, jlong srcFrameIndex,
-                                                                           jlong numOfFrames, jlong setFalureAddr)
+                                                                           jlong numOfFrames, jlong setFailureAddr)
 {
     static const char method_name[] = "MetadataStream::n_1importSet";
 
@@ -749,7 +749,7 @@ JNIEXPORT jboolean JNICALL Java_com_intel_vmf_MetadataStream_n_1importSet (JNIEn
         if ((srcSet == NULL) || (srcSet->get() == NULL))
             return JNI_FALSE;
 
-        std::shared_ptr <MetadataSet>* setFailure = (std::shared_ptr <MetadataSet>*) setFalureAddr;
+        std::shared_ptr <MetadataSet>* setFailure = (std::shared_ptr <MetadataSet>*) setFailureAddr;
 
         if ((setFailure != NULL) && (*setFailure != NULL))
             return (jboolean)(*obj)->import((**srcStream), (**srcSet), (long long)dstFrameIndex, (long long)srcFrameIndex, (long long)numOfFrames, setFailure->get());
@@ -1009,7 +1009,7 @@ JNIEXPORT void JNICALL Java_com_intel_vmf_MetadataStream_n_1addVideoSegment (JNI
         if ((obj == NULL) || (obj->get() == NULL))
             VMF_EXCEPTION(NullPointerException, "Stream is null pointer.");
 
-        if ((segment == NULL) || (segment->get() == NULL))
+        if ((segment == NULL) || (*segment == NULL) || (segment->get() == NULL))
             VMF_EXCEPTION(NullPointerException, "Segment is null pointer.");
 
         (*obj)->addVideoSegment(*segment);

@@ -53,7 +53,6 @@ set(VIDEO_PATH "${CMAKE_SOURCE_DIR}/data/BlueSquare.avi")
 if (BUILD_JAVA_API)
     set(VMFCORE_JAVA_DIR "${VMFCORE_DIR}/java")
     set(VMFCORE_JNI_DIR "${VMFCORE_JAVA_DIR}/jni")
-    set(CMAKE_JAVA_COMPILE_FLAGS "-source" "1.7" "-target" "1.7")
 endif()
 
 configure_file("${VMFCORE_PUBLIC_DIR}/vmf/config.hpp.in" "${CMAKE_BINARY_DIR}/config.hpp")
@@ -65,8 +64,8 @@ file(GLOB VMFCORE_TESTS "${VMFCORE_TESTS_DIR}/*.hpp"     "${VMFCORE_TESTS_DIR}/*
 
 if (BUILD_JAVA_API)
     file(GLOB VMFCORE_JNI "${VMFCORE_JNI_DIR}/*.cpp")
-    file(GLOB VMFCORE_JAVA_API "${VMFCORE_JAVA_DIR}/com/intel/vmf/*.java")
-    file(GLOB VMFCORE_JAVA_TEST "${VMFCORE_JAVA_DIR}/test/src/*.java")
+    file(GLOB VMFCORE_JAVA_API "${VMFCORE_JAVA_DIR}/src/com/intel/vmf/*.java")
+    file(GLOB VMFCORE_JAVA_TEST "${VMFCORE_JAVA_DIR}/test/*.java")
     file(GLOB VMFCORE_JAVA_JUNIT "${VMFCORE_JAVA_DIR}/test/lib/*.jar")
 endif()
 
@@ -111,7 +110,7 @@ if(APPLE AND NOT IOS)
   target_link_libraries(${VMF_LIBRARY_NAME} "-framework CoreFoundation" "-framework CoreServices")
 endif()
 
-if(UNIX AND NOT APPLE)
+if(UNIX AND NOT APPLE AND NOT ANDROID)
   # fix build with glibc < 2.17
   target_link_libraries(${VMF_LIBRARY_NAME} rt)
 endif()
@@ -200,13 +199,13 @@ endif()
 
 # tests
 if(BUILD_TESTS)
-	add_executable(${VMDATASOURCE_TEST_EXECUTABLE} ${VMDATASOURCE_TESTS})
-	target_link_libraries(${VMDATASOURCE_TEST_EXECUTABLE} gtest vmf)
-	set_target_properties(${VMDATASOURCE_TEST_EXECUTABLE} PROPERTIES FOLDER "tests")
+    add_executable(${VMDATASOURCE_TEST_EXECUTABLE} ${VMDATASOURCE_TESTS})
+    target_link_libraries(${VMDATASOURCE_TEST_EXECUTABLE} gtest vmf)
+    set_target_properties(${VMDATASOURCE_TEST_EXECUTABLE} PROPERTIES FOLDER "tests")
 
-	add_executable(${VMFCORE_TEST_EXECUTABLE} ${VMFCORE_TESTS})
-	target_link_libraries(${VMFCORE_TEST_EXECUTABLE} gtest vmf)
-	set_target_properties(${VMFCORE_TEST_EXECUTABLE} PROPERTIES FOLDER "tests")
+    add_executable(${VMFCORE_TEST_EXECUTABLE} ${VMFCORE_TESTS})
+    target_link_libraries(${VMFCORE_TEST_EXECUTABLE} gtest vmf)
+    set_target_properties(${VMFCORE_TEST_EXECUTABLE} PROPERTIES FOLDER "tests")
 
     if(CODE_COVERAGE)
         append_target_property(${VMFCORE_TEST_EXECUTABLE} LINK_FLAGS "--coverage")
@@ -214,9 +213,9 @@ if(BUILD_TESTS)
     endif()
 
     if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm*")
-		append_target_property(${VMFCORE_TEST_EXECUTABLE} LINK_FLAGS "-Wl,-z,muldefs")
-		append_target_property(${VMDATASOURCE_TEST_EXECUTABLE} LINK_FLAGS "-Wl,-z,muldefs")
-	endif()
+        append_target_property(${VMFCORE_TEST_EXECUTABLE} LINK_FLAGS "-Wl,-z,muldefs")
+        append_target_property(${VMDATASOURCE_TEST_EXECUTABLE} LINK_FLAGS "-Wl,-z,muldefs")
+    endif()
 
     set(OUTPUT_PATH "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CMAKE_CFG_INTDIR}")
 
