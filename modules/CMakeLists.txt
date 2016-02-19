@@ -53,7 +53,6 @@ set(VIDEO_PATH "${CMAKE_SOURCE_DIR}/data/BlueSquare.avi")
 if (BUILD_JAVA_API)
     set(VMFCORE_JAVA_DIR "${VMFCORE_DIR}/java")
     set(VMFCORE_JNI_DIR "${VMFCORE_JAVA_DIR}/jni")
-    set(CMAKE_JAVA_COMPILE_FLAGS "-source" "1.7" "-target" "1.7")
 endif()
 
 configure_file("${VMFCORE_PUBLIC_DIR}/vmf/config.hpp.in" "${CMAKE_BINARY_DIR}/config.hpp")
@@ -65,8 +64,8 @@ file(GLOB VMFCORE_TESTS "${VMFCORE_TESTS_DIR}/*.hpp"     "${VMFCORE_TESTS_DIR}/*
 
 if (BUILD_JAVA_API)
     file(GLOB VMFCORE_JNI "${VMFCORE_JNI_DIR}/*.cpp")
-    file(GLOB VMFCORE_JAVA_API "${VMFCORE_JAVA_DIR}/com/intel/vmf/*.java")
-    file(GLOB VMFCORE_JAVA_TEST "${VMFCORE_JAVA_DIR}/test/src/*.java")
+    file(GLOB VMFCORE_JAVA_API "${VMFCORE_JAVA_DIR}/src/com/intel/vmf/*.java")
+    file(GLOB VMFCORE_JAVA_TEST "${VMFCORE_JAVA_DIR}/test/*.java")
     file(GLOB VMFCORE_JAVA_JUNIT "${VMFCORE_JAVA_DIR}/test/lib/*.jar")
 endif()
 
