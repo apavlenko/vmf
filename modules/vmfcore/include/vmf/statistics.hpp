@@ -63,9 +63,9 @@ public:
     virtual ~StatOpBase() {}
 
 public:
-    virtual const std::string& name() const = 0;
+    virtual std::string name() const = 0;
     virtual void reset() = 0;
-    virtual bool handle( StatAction::Type action, const Variant& inputValue ) = 0;
+    virtual bool handle( StatAction::Type action, const Variant& fieldValue ) = 0;
     virtual const Variant& value() const = 0;
 };
 
@@ -73,31 +73,17 @@ class VMF_EXPORT StatOpFactory
 {
 public:
     typedef StatOpBase* (*InstanceCreator)();
-private:
-    typedef std::pair< std::string, InstanceCreator > UserOpItem;
-    typedef std::map< std::string, InstanceCreator > UserOpMap;
 
 public:
     static StatOpBase* create( const std::string& name );
-    static void registerUserOp( const std::string& name, InstanceCreator createInstance );
+    static void registerUserOp( InstanceCreator createInstance );
 
-    // required: UserOp::opName() & UserOp::createInstance() static members
-    template< class UserOp >
-    inline static void registerUserOp()
-        {
-            static_assert( std::is_base_of< StatOpBase, UserOp >::value,
-                           "User operation must implement StatOpBase interface" );
-            registerUserOp( UserOp::opName(), UserOp::createInstance );
-        }
-
-    static const std::string& minName();
-    static const std::string& maxName();
-    static const std::string& averageName();
-    static const std::string& countName();
-    static const std::string& sumName();
-    static const std::string& lastName();
+    struct BuiltinOp { enum Type { Min, Max, Average, Count, Sum, LastVal }; };
+    static std::string builtinName(BuiltinOp::Type op);
 
 private:
+    typedef std::pair< std::string, InstanceCreator > UserOpItem;
+    typedef std::map< std::string, InstanceCreator > UserOpMap;
     static UserOpMap& getClassMap();
 };
 

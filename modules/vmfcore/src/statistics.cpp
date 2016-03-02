@@ -25,40 +25,34 @@
 //#include <limits>
 //#include <iomanip>
 
-#define BUILTIN_OP_PREFIX "com.intel.statistics.builtin_operation."
-
-#define BUILTIN_OP_NAME_MIN     BUILTIN_OP_PREFIX "min"
-#define BUILTIN_OP_NAME_MAX     BUILTIN_OP_PREFIX "max"
-#define BUILTIN_OP_NAME_AVERAGE BUILTIN_OP_PREFIX "average"
-#define BUILTIN_OP_NAME_COUNT   BUILTIN_OP_PREFIX "count"
-#define BUILTIN_OP_NAME_SUM     BUILTIN_OP_PREFIX "sum"
-#define BUILTIN_OP_NAME_LAST    BUILTIN_OP_PREFIX "last"
-
 namespace vmf
 {
 
 // struct StatUpdateMode
-
+#define CASE_ITEM(x) case x:  return #x
 std::string StatUpdateMode::toString( StatUpdateMode::Type val )
 {
     switch( val )
     {
-    case StatUpdateMode::Disabled: return "StatUpdateMode::Disabled";
-    case StatUpdateMode::Manual:   return "StatUpdateMode::Manual";
-    case StatUpdateMode::OnAdd:    return "StatUpdateMode::OnAdd";
-    case StatUpdateMode::OnTimer:  return "StatUpdateMode::OnTimer";
+        CASE_ITEM(StatUpdateMode::Disabled);
+        CASE_ITEM(StatUpdateMode::Manual);
+        CASE_ITEM(StatUpdateMode::OnAdd);
+        CASE_ITEM(StatUpdateMode::OnTimer);
     }
-    VMF_EXCEPTION( vmf::InternalErrorException, "Enum value is invalid upon conversion to string" );
+    VMF_EXCEPTION( vmf::IncorrectParamException, "Unknown enum value: " + std::to_string((int) val) );
 }
+#undef CASE_ITEM
 
+#define STR2VAL(x)  if( str == #x ) return x
 StatUpdateMode::Type StatUpdateMode::fromString( const std::string& str )
 {
-    if( str == "StatUpdateMode::Disabled" ) return StatUpdateMode::Disabled;
-    if( str == "StatUpdateMode::Manual"   ) return StatUpdateMode::Manual;
-    if( str == "StatUpdateMode::OnAdd"    ) return StatUpdateMode::OnAdd;
-    if( str == "StatUpdateMode::OnTimer"  ) return StatUpdateMode::OnTimer;
-    VMF_EXCEPTION( vmf::InternalErrorException, "Enum value is invalid upon conversion from string" );
+    STR2VAL(StatUpdateMode::Disabled);
+    STR2VAL(StatUpdateMode::Manual);
+    STR2VAL(StatUpdateMode::OnAdd);
+    STR2VAL(StatUpdateMode::OnTimer);
+    VMF_EXCEPTION(vmf::IncorrectParamException, "Unknown enum string: " + str);
 }
+#undef STR2VAL
 
 // class StatOpBase: builtin operations
 
@@ -71,8 +65,8 @@ public:
         {}
 
 public:
-    virtual const std::string& name() const
-        { return opName(); }
+    virtual std::string name() const
+        { return StatOpFactory::builtinName(StatOpFactory::BuiltinOp::Min); }
     virtual void reset()
         { m_value = Variant(); }
     virtual bool handle( StatAction::Type action, const Variant& inputValue )
@@ -126,11 +120,6 @@ private:
 public:
     static StatOpBase* createInstance()
         { return new StatOpMin(); }
-    static const std::string& opName()
-        {
-            static const std::string name( BUILTIN_OP_NAME_MIN );
-            return name;
-        }
 };
 
 class StatOpMax: public StatOpBase
@@ -142,8 +131,8 @@ public:
         {}
 
 public:
-    virtual const std::string& name() const
-        { return opName(); }
+    virtual std::string name() const
+        { return StatOpFactory::builtinName(StatOpFactory::BuiltinOp::Max); }
     virtual void reset()
         { m_value = Variant(); }
     virtual bool handle( StatAction::Type action, const Variant& inputValue )
@@ -197,11 +186,6 @@ private:
 public:
     static StatOpBase* createInstance()
         { return new StatOpMax(); }
-    static const std::string& opName()
-        {
-            static const std::string name( BUILTIN_OP_NAME_MAX );
-            return name;
-        }
 };
 
 class StatOpAverage: public StatOpBase
@@ -213,8 +197,8 @@ public:
         {}
 
 public:
-    virtual const std::string& name() const
-        { return opName(); }
+    virtual std::string name() const
+        { return StatOpFactory::builtinName(StatOpFactory::BuiltinOp::Average); }
     virtual void reset()
         { m_count = 0; m_value = Variant(); }
     virtual bool handle( StatAction::Type action, const Variant& inputValue )
@@ -285,11 +269,6 @@ private:
 public:
     static StatOpBase* createInstance()
         { return new StatOpAverage(); }
-    static const std::string& opName()
-        {
-            static const std::string name( BUILTIN_OP_NAME_AVERAGE );
-            return name;
-        }
 };
 
 class StatOpCount: public StatOpBase
@@ -301,8 +280,8 @@ public:
         {}
 
 public:
-    virtual const std::string& name() const
-        { return opName(); }
+    virtual std::string name() const
+        { return StatOpFactory::builtinName(StatOpFactory::BuiltinOp::Count); }
     virtual void reset()
         { m_count = 0; }
     virtual bool handle( StatAction::Type action, const Variant& /*inputValue*/ )
@@ -330,11 +309,6 @@ private:
 public:
     static StatOpBase* createInstance()
         { return new StatOpCount(); }
-    static const std::string& opName()
-        {
-            static const std::string name( BUILTIN_OP_NAME_COUNT );
-            return name;
-        }
 };
 
 class StatOpSum: public StatOpBase
@@ -346,8 +320,8 @@ public:
         {}
 
 public:
-    virtual const std::string& name() const
-        { return opName(); }
+    virtual std::string name() const
+        { return StatOpFactory::builtinName(StatOpFactory::BuiltinOp::Sum); }
     virtual void reset()
         { m_value = Variant(); }
     virtual bool handle( StatAction::Type action, const Variant& inputValue )
@@ -401,24 +375,19 @@ private:
 public:
     static StatOpBase* createInstance()
         { return new StatOpSum(); }
-    static const std::string& opName()
-        {
-            static const std::string name( BUILTIN_OP_NAME_SUM );
-            return name;
-        }
 };
 
-class StatOpLast: public StatOpBase
+class StatOpLastVal: public StatOpBase
 {
 public:
-    StatOpLast()
+    StatOpLastVal()
         {}
-    virtual ~StatOpLast()
+    virtual ~StatOpLastVal()
         {}
 
 public:
-    virtual const std::string& name() const
-        { return opName(); }
+    virtual std::string name() const
+        { return StatOpFactory::builtinName(StatOpFactory::BuiltinOp::LastVal); }
     virtual void reset()
         { m_value = Variant(); }
     virtual bool handle( StatAction::Type action, const Variant& inputValue )
@@ -441,12 +410,7 @@ private:
 
 public:
     static StatOpBase* createInstance()
-        { return new StatOpLast(); }
-    static const std::string& opName()
-        {
-            static const std::string name( BUILTIN_OP_NAME_LAST );
-            return name;
-        }
+        { return new StatOpLastVal(); }
 };
 
 // class StatOpFactory
@@ -471,22 +435,25 @@ StatOpBase* StatOpFactory::create( const std::string& name )
     return op;
 }
 
-void StatOpFactory::registerUserOp( const std::string& name, InstanceCreator createInstance )
+void StatOpFactory::registerUserOp( InstanceCreator createInstance )
 {
-    if( (name == "") || (createInstance == nullptr) )
+    if( createInstance == nullptr )
     {
-        VMF_EXCEPTION( vmf::IncorrectParamException, "Incorrect parameters upon registering user operation" );
+        VMF_EXCEPTION( vmf::NullPointerException, "Null pointer to the class instance creator for a user operation" );
     }
+
+    std::unique_ptr<StatOpBase> userOp( createInstance() );
+    std::string userOpName = userOp->name();
 
     // TODO: use lock for thread-safe access to UserOpMap instance
     UserOpMap& ops = getClassMap();
 
-    auto it = ops.find( name );
+    auto it = ops.find(userOpName);
     if( it != ops.end() )
     {
         if( it->second != createInstance )
         {
-            VMF_EXCEPTION( vmf::IncorrectParamException, "User operation is registered twice: '" + name + "'" );
+            VMF_EXCEPTION(vmf::IncorrectParamException, "User operation is registered twice: '" + userOpName + "'");
         }
         else
         {
@@ -495,10 +462,23 @@ void StatOpFactory::registerUserOp( const std::string& name, InstanceCreator cre
     }
     else
     {
-        ops.insert( UserOpItem( name, createInstance ));
+        ops.insert( UserOpItem(userOpName, createInstance) );
     }
 }
 
+
+#define ALL_BUILTIN_OPS   \
+        OP_ITEM(Min);     \
+        OP_ITEM(Max);     \
+        OP_ITEM(Average); \
+        OP_ITEM(Count);   \
+        OP_ITEM(Sum);     \
+        OP_ITEM(LastVal);
+
+#ifdef OP_ITEM
+  #undef OP_ITEM
+#endif
+#define OP_ITEM(x)  ops.insert( UserOpItem( builtinName(BuiltinOp::x), StatOp ## x ::createInstance ) )
 StatOpFactory::UserOpMap& StatOpFactory::getClassMap()
 {
     // Singletone model based on initialisation of function-local static object
@@ -507,23 +487,28 @@ StatOpFactory::UserOpMap& StatOpFactory::getClassMap()
 
     if( ops.empty() )
     {
-        ops.insert( UserOpItem( minName()    , StatOpMin::createInstance     ));
-        ops.insert( UserOpItem( maxName()    , StatOpMax::createInstance     ));
-        ops.insert( UserOpItem( averageName(), StatOpAverage::createInstance ));
-        ops.insert( UserOpItem( countName()  , StatOpCount::createInstance   ));
-        ops.insert( UserOpItem( sumName()    , StatOpSum::createInstance     ));
-        ops.insert( UserOpItem( lastName()   , StatOpLast::createInstance    ));
+        ALL_BUILTIN_OPS
     }
 
     return ops;
 }
+#undef OP_ITEM
 
-const std::string& StatOpFactory::minName()     { return StatOpMin::opName();     }
-const std::string& StatOpFactory::maxName()     { return StatOpMax::opName();     }
-const std::string& StatOpFactory::averageName() { return StatOpAverage::opName(); }
-const std::string& StatOpFactory::countName()   { return StatOpCount::opName();   }
-const std::string& StatOpFactory::sumName()     { return StatOpSum::opName();     }
-const std::string& StatOpFactory::lastName()    { return StatOpLast::opName();    }
+#ifdef OP_ITEM
+  #undef OP_ITEM
+#endif
+#define OP_ITEM(x) case BuiltinOp:: ## x:  return prefix + #x
+/*static*/ std::string StatOpFactory::builtinName(BuiltinOp::Type op)
+{
+    static const std::string prefix = "com.intel.statistics.builtin_operation.";
+    switch (op)
+    {
+        ALL_BUILTIN_OPS
+    }
+    VMF_EXCEPTION(vmf::IncorrectParamException, "Unknown enum value: " + std::to_string((int)op));
+}
+#undef OP_ITEM
+
 
 // class StatField (StatFieldDesc)
 

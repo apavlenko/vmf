@@ -46,7 +46,7 @@ public:
         {}
 
 public:
-    virtual const std::string& name() const
+    virtual std::string name() const
         { return opName(); }
     virtual void reset()
         { m_value = ""; }
@@ -76,10 +76,9 @@ private:
 public:
     static StatOpBase* createInstance()
         { return new StrCatOp(); }
-    static const std::string& opName()
+    static std::string opName()
         {
-            static const std::string name( "User.StrCatOp" );
-            return name;
+            return "User.StrCatOp";
         }
 };
 
@@ -110,6 +109,7 @@ static void dumpStatistics( const vmf::MetadataStream& mdStream )
                     const vmf::StatField& field = stat.getField( fieldName );
 
                     std::cout << "  name='" << field.getName()
+                              << "  operation='" << field.getOpName()
                               << "'  metadata='" << field.getMetadataDesc()->getMetadataName()
                               << "'  field='" << field.getFieldName()
                               << "'  value=" << field.getValue()
@@ -203,14 +203,14 @@ int sample(int argc, char *argv[])
 
     // Register user operation: exactly one of two calls must be issued once for each user op
     // vmf::StatOpFactory::registerUserOp( StrCatOp::opName(), StrCatOp::createInstance );
-    vmf::StatOpFactory::registerUserOp< StrCatOp >();
+    vmf::StatOpFactory::registerUserOp(StrCatOp::createInstance);
 
     // Set up statistics object(s)
     std::vector< vmf::StatField > fields;
-    fields.emplace_back( GPS_COUNT_COORD_NAME, GPS_SCHEMA_NAME, GPS_DESC, GPS_COORD_FIELD, vmf::StatOpFactory::countName() );
-    fields.emplace_back( GPS_COUNT_TIME_NAME, GPS_SCHEMA_NAME, GPS_DESC, GPS_TIME_FIELD, vmf::StatOpFactory::countName() );
-    fields.emplace_back( GPS_STRCAT_COORD_NAME, GPS_SCHEMA_NAME, GPS_DESC, GPS_COORD_FIELD, StrCatOp::opName() );
-    fields.emplace_back( GPS_STRCAT_TIME_NAME, GPS_SCHEMA_NAME, GPS_DESC, GPS_TIME_FIELD, StrCatOp::opName() );
+    fields.emplace_back(GPS_COUNT_COORD_NAME, GPS_SCHEMA_NAME, GPS_DESC, GPS_COORD_FIELD, vmf::StatOpFactory::builtinName(vmf::StatOpFactory::BuiltinOp::Count));
+    fields.emplace_back(GPS_COUNT_TIME_NAME, GPS_SCHEMA_NAME, GPS_DESC, GPS_TIME_FIELD, vmf::StatOpFactory::builtinName(vmf::StatOpFactory::BuiltinOp::Count));
+    fields.emplace_back(GPS_STRCAT_COORD_NAME, GPS_SCHEMA_NAME, GPS_DESC, GPS_COORD_FIELD, StrCatOp::opName());
+    fields.emplace_back(GPS_STRCAT_TIME_NAME, GPS_SCHEMA_NAME, GPS_DESC, GPS_TIME_FIELD, StrCatOp::opName());
     mdStream.addStat( GPS_STAT_NAME, fields, vmf::StatUpdateMode::Disabled );
 //    mdStream.addStat( GPS_STAT_NAME, fields, vmf::StatUpdateMode::Manual );
 //    mdStream.addStat( GPS_STAT_NAME, fields, vmf::StatUpdateMode::OnAdd );
