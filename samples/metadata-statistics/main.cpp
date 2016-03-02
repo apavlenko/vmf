@@ -21,6 +21,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <fstream>
 #include <cstdio>
 #include <cassert>
 #include <chrono>
@@ -35,7 +36,12 @@ string workingPath;
 
 #define VIDEO_FILE (workingPath + "BlueSquare.avi")
 
-void copyFile(const string& srcName, const char *dstName);
+void copyFile(const string& srcName, const char *dstName)
+{
+	ifstream src(srcName, ios::binary);
+	ofstream dst(dstName, ios::binary);
+	dst << src.rdbuf();
+}
 
 class StrCatOp: public vmf::StatOpBase
 {
