@@ -37,7 +37,7 @@ string workingPath;
 
 void copyFile(const string& srcName, const char *dstName);
 
-class StrCatOp: public vmf::IStatOp
+class StrCatOp: public vmf::StatOpBase
 {
 public:
     StrCatOp()
@@ -74,7 +74,7 @@ private:
     mutable vmf::Variant m_temp; // temp return value for getValue()
 
 public:
-    static IStatOp* createInstance()
+    static StatOpBase* createInstance()
         { return new StrCatOp(); }
     static const std::string& opName()
         {

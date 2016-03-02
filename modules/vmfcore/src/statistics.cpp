@@ -60,9 +60,9 @@ StatUpdateMode::Type StatUpdateMode::fromString( const std::string& str )
     VMF_EXCEPTION( vmf::InternalErrorException, "Enum value is invalid upon conversion from string" );
 }
 
-// class IStatOp: builtin operations
+// class StatOpBase: builtin operations
 
-class StatOpMin: public IStatOp
+class StatOpMin: public StatOpBase
 {
 public:
     StatOpMin()
@@ -124,7 +124,7 @@ private:
     Variant m_value;
 
 public:
-    static IStatOp* createInstance()
+    static StatOpBase* createInstance()
         { return new StatOpMin(); }
     static const std::string& opName()
         {
@@ -133,7 +133,7 @@ public:
         }
 };
 
-class StatOpMax: public IStatOp
+class StatOpMax: public StatOpBase
 {
 public:
     StatOpMax()
@@ -195,7 +195,7 @@ private:
     Variant m_value;
 
 public:
-    static IStatOp* createInstance()
+    static StatOpBase* createInstance()
         { return new StatOpMax(); }
     static const std::string& opName()
         {
@@ -204,7 +204,7 @@ public:
         }
 };
 
-class StatOpAverage: public IStatOp
+class StatOpAverage: public StatOpBase
 {
 public:
     StatOpAverage()
@@ -283,7 +283,7 @@ private:
     mutable Variant m_temp; // temp return value for getValue()
 
 public:
-    static IStatOp* createInstance()
+    static StatOpBase* createInstance()
         { return new StatOpAverage(); }
     static const std::string& opName()
         {
@@ -292,7 +292,7 @@ public:
         }
 };
 
-class StatOpCount: public IStatOp
+class StatOpCount: public StatOpBase
 {
 public:
     StatOpCount()
@@ -328,7 +328,7 @@ private:
     mutable Variant m_temp; // temp return value for getValue()
 
 public:
-    static IStatOp* createInstance()
+    static StatOpBase* createInstance()
         { return new StatOpCount(); }
     static const std::string& opName()
         {
@@ -337,7 +337,7 @@ public:
         }
 };
 
-class StatOpSum: public IStatOp
+class StatOpSum: public StatOpBase
 {
 public:
     StatOpSum()
@@ -399,7 +399,7 @@ private:
     Variant m_value;
 
 public:
-    static IStatOp* createInstance()
+    static StatOpBase* createInstance()
         { return new StatOpSum(); }
     static const std::string& opName()
         {
@@ -408,7 +408,7 @@ public:
         }
 };
 
-class StatOpLast: public IStatOp
+class StatOpLast: public StatOpBase
 {
 public:
     StatOpLast()
@@ -440,7 +440,7 @@ private:
     Variant m_value;
 
 public:
-    static IStatOp* createInstance()
+    static StatOpBase* createInstance()
         { return new StatOpLast(); }
     static const std::string& opName()
         {
@@ -451,7 +451,7 @@ public:
 
 // class StatOpFactory
 
-IStatOp* StatOpFactory::create( const std::string& name )
+StatOpBase* StatOpFactory::create( const std::string& name )
 {
     // TODO: use lock for thread-safe access to UserOpMap instance
     const UserOpMap& ops = getClassMap();
@@ -462,7 +462,7 @@ IStatOp* StatOpFactory::create( const std::string& name )
         VMF_EXCEPTION( vmf::NotFoundException, "User operation not registered: '" + name + "'" );
     }
 
-    IStatOp* op = (it->second)();
+    StatOpBase* op = (it->second)();
     if( op == nullptr )
     {
         VMF_EXCEPTION( vmf::NullPointerException, "User operation isn't created: '" + name + "'" );

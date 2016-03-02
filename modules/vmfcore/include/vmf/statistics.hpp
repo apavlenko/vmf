@@ -56,11 +56,11 @@ struct StatUpdateMode
 class Stat;
 class StatField;
 
-class VMF_EXPORT IStatOp
+class VMF_EXPORT StatOpBase
 {
 public:
-    IStatOp() {}
-    virtual ~IStatOp() {}
+    StatOpBase() {}
+    virtual ~StatOpBase() {}
 
 public:
     virtual const std::string& name() const = 0;
@@ -72,21 +72,21 @@ public:
 class VMF_EXPORT StatOpFactory
 {
 public:
-    typedef IStatOp* (*InstanceCreator)();
+    typedef StatOpBase* (*InstanceCreator)();
 private:
     typedef std::pair< std::string, InstanceCreator > UserOpItem;
     typedef std::map< std::string, InstanceCreator > UserOpMap;
 
 public:
-    static IStatOp* create( const std::string& name );
+    static StatOpBase* create( const std::string& name );
     static void registerUserOp( const std::string& name, InstanceCreator createInstance );
 
     // required: UserOp::opName() & UserOp::createInstance() static members
     template< class UserOp >
     inline static void registerUserOp()
         {
-            static_assert( std::is_base_of< IStatOp, UserOp >::value,
-                           "User operation must implement IStatOp interface" );
+            static_assert( std::is_base_of< StatOpBase, UserOp >::value,
+                           "User operation must implement StatOpBase interface" );
             registerUserOp( UserOp::opName(), UserOp::createInstance );
         }
 
@@ -187,7 +187,7 @@ private:
     void updateState( bool didUpdate );
 
     StatFieldDesc m_desc;
-    IStatOp* m_op;
+    StatOpBase* m_op;
     StatState::Type m_state;
     bool m_isActive;
 };
