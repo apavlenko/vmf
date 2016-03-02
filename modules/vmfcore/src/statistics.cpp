@@ -25,44 +25,38 @@
 //#include <limits>
 //#include <iomanip>
 
-#define BUILTIN_OP_PREFIX "com.intel.statistics.builtin_operation."
-
-#define BUILTIN_OP_NAME_MIN     BUILTIN_OP_PREFIX "min"
-#define BUILTIN_OP_NAME_MAX     BUILTIN_OP_PREFIX "max"
-#define BUILTIN_OP_NAME_AVERAGE BUILTIN_OP_PREFIX "average"
-#define BUILTIN_OP_NAME_COUNT   BUILTIN_OP_PREFIX "count"
-#define BUILTIN_OP_NAME_SUM     BUILTIN_OP_PREFIX "sum"
-#define BUILTIN_OP_NAME_LAST    BUILTIN_OP_PREFIX "last"
-
 namespace vmf
 {
 
 // struct StatUpdateMode
-
+#define CASE_ITEM(x) case x:  return #x
 std::string StatUpdateMode::toString( StatUpdateMode::Type val )
 {
     switch( val )
     {
-    case StatUpdateMode::Disabled: return "StatUpdateMode::Disabled";
-    case StatUpdateMode::Manual:   return "StatUpdateMode::Manual";
-    case StatUpdateMode::OnAdd:    return "StatUpdateMode::OnAdd";
-    case StatUpdateMode::OnTimer:  return "StatUpdateMode::OnTimer";
+        CASE_ITEM(StatUpdateMode::Disabled);
+        CASE_ITEM(StatUpdateMode::Manual);
+        CASE_ITEM(StatUpdateMode::OnAdd);
+        CASE_ITEM(StatUpdateMode::OnTimer);
     }
-    VMF_EXCEPTION( vmf::InternalErrorException, "Enum value is invalid upon conversion to string" );
+    VMF_EXCEPTION( vmf::IncorrectParamException, "Unknown enum value: " + std::to_string((int) val) );
 }
+#undef CASE_ITEM
 
+#define STR2VAL(x)  if( str == #x ) return x
 StatUpdateMode::Type StatUpdateMode::fromString( const std::string& str )
 {
-    if( str == "StatUpdateMode::Disabled" ) return StatUpdateMode::Disabled;
-    if( str == "StatUpdateMode::Manual"   ) return StatUpdateMode::Manual;
-    if( str == "StatUpdateMode::OnAdd"    ) return StatUpdateMode::OnAdd;
-    if( str == "StatUpdateMode::OnTimer"  ) return StatUpdateMode::OnTimer;
-    VMF_EXCEPTION( vmf::InternalErrorException, "Enum value is invalid upon conversion from string" );
+    STR2VAL(StatUpdateMode::Disabled);
+    STR2VAL(StatUpdateMode::Manual);
+    STR2VAL(StatUpdateMode::OnAdd);
+    STR2VAL(StatUpdateMode::OnTimer);
+    VMF_EXCEPTION(vmf::IncorrectParamException, "Unknown enum string: " + str);
 }
+#undef STR2VAL
 
-// class IStatOp: builtin operations
+// class StatOpBase: builtin operations
 
-class StatOpMin: public IStatOp
+class StatOpMin: public StatOpBase
 {
 public:
     StatOpMin()
@@ -71,8 +65,8 @@ public:
         {}
 
 public:
-    virtual const std::string& name() const
-        { return opName(); }
+    virtual std::string name() const
+        { return StatOpFactory::builtinName(StatOpFactory::BuiltinOp::Min); }
     virtual void reset()
         { m_value = Variant(); }
     virtual bool handle( StatAction::Type action, const Variant& inputValue )
@@ -124,16 +118,11 @@ private:
     Variant m_value;
 
 public:
-    static IStatOp* createInstance()
+    static StatOpBase* createInstance()
         { return new StatOpMin(); }
-    static const std::string& opName()
-        {
-            static const std::string name( BUILTIN_OP_NAME_MIN );
-            return name;
-        }
 };
 
-class StatOpMax: public IStatOp
+class StatOpMax: public StatOpBase
 {
 public:
     StatOpMax()
@@ -142,8 +131,8 @@ public:
         {}
 
 public:
-    virtual const std::string& name() const
-        { return opName(); }
+    virtual std::string name() const
+        { return StatOpFactory::builtinName(StatOpFactory::BuiltinOp::Max); }
     virtual void reset()
         { m_value = Variant(); }
     virtual bool handle( StatAction::Type action, const Variant& inputValue )
@@ -195,16 +184,11 @@ private:
     Variant m_value;
 
 public:
-    static IStatOp* createInstance()
+    static StatOpBase* createInstance()
         { return new StatOpMax(); }
-    static const std::string& opName()
-        {
-            static const std::string name( BUILTIN_OP_NAME_MAX );
-            return name;
-        }
 };
 
-class StatOpAverage: public IStatOp
+class StatOpAverage: public StatOpBase
 {
 public:
     StatOpAverage()
@@ -213,8 +197,8 @@ public:
         {}
 
 public:
-    virtual const std::string& name() const
-        { return opName(); }
+    virtual std::string name() const
+        { return StatOpFactory::builtinName(StatOpFactory::BuiltinOp::Average); }
     virtual void reset()
         { m_count = 0; m_value = Variant(); }
     virtual bool handle( StatAction::Type action, const Variant& inputValue )
@@ -283,16 +267,11 @@ private:
     mutable Variant m_temp; // temp return value for getValue()
 
 public:
-    static IStatOp* createInstance()
+    static StatOpBase* createInstance()
         { return new StatOpAverage(); }
-    static const std::string& opName()
-        {
-            static const std::string name( BUILTIN_OP_NAME_AVERAGE );
-            return name;
-        }
 };
 
-class StatOpCount: public IStatOp
+class StatOpCount: public StatOpBase
 {
 public:
     StatOpCount()
@@ -301,8 +280,8 @@ public:
         {}
 
 public:
-    virtual const std::string& name() const
-        { return opName(); }
+    virtual std::string name() const
+        { return StatOpFactory::builtinName(StatOpFactory::BuiltinOp::Count); }
     virtual void reset()
         { m_count = 0; }
     virtual bool handle( StatAction::Type action, const Variant& /*inputValue*/ )
@@ -328,16 +307,11 @@ private:
     mutable Variant m_temp; // temp return value for getValue()
 
 public:
-    static IStatOp* createInstance()
+    static StatOpBase* createInstance()
         { return new StatOpCount(); }
-    static const std::string& opName()
-        {
-            static const std::string name( BUILTIN_OP_NAME_COUNT );
-            return name;
-        }
 };
 
-class StatOpSum: public IStatOp
+class StatOpSum: public StatOpBase
 {
 public:
     StatOpSum()
@@ -346,8 +320,8 @@ public:
         {}
 
 public:
-    virtual const std::string& name() const
-        { return opName(); }
+    virtual std::string name() const
+        { return StatOpFactory::builtinName(StatOpFactory::BuiltinOp::Sum); }
     virtual void reset()
         { m_value = Variant(); }
     virtual bool handle( StatAction::Type action, const Variant& inputValue )
@@ -399,26 +373,21 @@ private:
     Variant m_value;
 
 public:
-    static IStatOp* createInstance()
+    static StatOpBase* createInstance()
         { return new StatOpSum(); }
-    static const std::string& opName()
-        {
-            static const std::string name( BUILTIN_OP_NAME_SUM );
-            return name;
-        }
 };
 
-class StatOpLast: public IStatOp
+class StatOpLastVal: public StatOpBase
 {
 public:
-    StatOpLast()
+    StatOpLastVal()
         {}
-    virtual ~StatOpLast()
+    virtual ~StatOpLastVal()
         {}
 
 public:
-    virtual const std::string& name() const
-        { return opName(); }
+    virtual std::string name() const
+        { return StatOpFactory::builtinName(StatOpFactory::BuiltinOp::LastVal); }
     virtual void reset()
         { m_value = Variant(); }
     virtual bool handle( StatAction::Type action, const Variant& inputValue )
@@ -440,18 +409,13 @@ private:
     Variant m_value;
 
 public:
-    static IStatOp* createInstance()
-        { return new StatOpLast(); }
-    static const std::string& opName()
-        {
-            static const std::string name( BUILTIN_OP_NAME_LAST );
-            return name;
-        }
+    static StatOpBase* createInstance()
+        { return new StatOpLastVal(); }
 };
 
 // class StatOpFactory
 
-IStatOp* StatOpFactory::create( const std::string& name )
+StatOpBase* StatOpFactory::create( const std::string& name )
 {
     // TODO: use lock for thread-safe access to UserOpMap instance
     const UserOpMap& ops = getClassMap();
@@ -462,7 +426,7 @@ IStatOp* StatOpFactory::create( const std::string& name )
         VMF_EXCEPTION( vmf::NotFoundException, "User operation not registered: '" + name + "'" );
     }
 
-    IStatOp* op = (it->second)();
+    StatOpBase* op = (it->second)();
     if( op == nullptr )
     {
         VMF_EXCEPTION( vmf::NullPointerException, "User operation isn't created: '" + name + "'" );
@@ -471,22 +435,25 @@ IStatOp* StatOpFactory::create( const std::string& name )
     return op;
 }
 
-void StatOpFactory::registerUserOp( const std::string& name, InstanceCreator createInstance )
+void StatOpFactory::registerUserOp( InstanceCreator createInstance )
 {
-    if( (name == "") || (createInstance == nullptr) )
+    if( createInstance == nullptr )
     {
-        VMF_EXCEPTION( vmf::IncorrectParamException, "Incorrect parameters upon registering user operation" );
+        VMF_EXCEPTION( vmf::NullPointerException, "Null pointer to the class instance creator for a user operation" );
     }
+
+    std::unique_ptr<StatOpBase> userOp( createInstance() );
+    std::string userOpName = userOp->name();
 
     // TODO: use lock for thread-safe access to UserOpMap instance
     UserOpMap& ops = getClassMap();
 
-    auto it = ops.find( name );
+    auto it = ops.find(userOpName);
     if( it != ops.end() )
     {
         if( it->second != createInstance )
         {
-            VMF_EXCEPTION( vmf::IncorrectParamException, "User operation is registered twice: '" + name + "'" );
+            VMF_EXCEPTION(vmf::IncorrectParamException, "User operation is registered twice: '" + userOpName + "'");
         }
         else
         {
@@ -495,10 +462,23 @@ void StatOpFactory::registerUserOp( const std::string& name, InstanceCreator cre
     }
     else
     {
-        ops.insert( UserOpItem( name, createInstance ));
+        ops.insert( UserOpItem(userOpName, createInstance) );
     }
 }
 
+
+#define ALL_BUILTIN_OPS   \
+        OP_ITEM(Min);     \
+        OP_ITEM(Max);     \
+        OP_ITEM(Average); \
+        OP_ITEM(Count);   \
+        OP_ITEM(Sum);     \
+        OP_ITEM(LastVal);
+
+#ifdef OP_ITEM
+  #undef OP_ITEM
+#endif
+#define OP_ITEM(x)  ops.insert( UserOpItem( builtinName(BuiltinOp::x), StatOp ## x ::createInstance ) )
 StatOpFactory::UserOpMap& StatOpFactory::getClassMap()
 {
     // Singletone model based on initialisation of function-local static object
@@ -507,25 +487,104 @@ StatOpFactory::UserOpMap& StatOpFactory::getClassMap()
 
     if( ops.empty() )
     {
-        ops.insert( UserOpItem( minName()    , StatOpMin::createInstance     ));
-        ops.insert( UserOpItem( maxName()    , StatOpMax::createInstance     ));
-        ops.insert( UserOpItem( averageName(), StatOpAverage::createInstance ));
-        ops.insert( UserOpItem( countName()  , StatOpCount::createInstance   ));
-        ops.insert( UserOpItem( sumName()    , StatOpSum::createInstance     ));
-        ops.insert( UserOpItem( lastName()   , StatOpLast::createInstance    ));
+        ALL_BUILTIN_OPS
     }
 
     return ops;
 }
+#undef OP_ITEM
 
-const std::string& StatOpFactory::minName()     { return StatOpMin::opName();     }
-const std::string& StatOpFactory::maxName()     { return StatOpMax::opName();     }
-const std::string& StatOpFactory::averageName() { return StatOpAverage::opName(); }
-const std::string& StatOpFactory::countName()   { return StatOpCount::opName();   }
-const std::string& StatOpFactory::sumName()     { return StatOpSum::opName();     }
-const std::string& StatOpFactory::lastName()    { return StatOpLast::opName();    }
+#ifdef OP_ITEM
+  #undef OP_ITEM
+#endif
+#define OP_ITEM(x) case BuiltinOp:: ## x:  return prefix + #x
+/*static*/ std::string StatOpFactory::builtinName(BuiltinOp::Type op)
+{
+    static const std::string prefix = "com.intel.statistics.builtin_operation.";
+    switch (op)
+    {
+        ALL_BUILTIN_OPS
+    }
+    VMF_EXCEPTION(vmf::IncorrectParamException, "Unknown enum value: " + std::to_string((int)op));
+}
+#undef OP_ITEM
+
 
 // class StatField (StatFieldDesc)
+
+class StatField::StatFieldDesc
+{
+public:
+    StatFieldDesc(const std::string& name, const std::string& schemaName,
+        const std::string& metadataName, const std::string& fieldName,
+        const std::string& opName)
+        : m_name(name), m_schemaName(schemaName), m_metadataName(metadataName),
+        m_metadataDesc(nullptr), m_fieldName(fieldName), m_fieldDesc(),
+        m_opName(opName), m_pMetadataStream(nullptr) {}
+    explicit StatFieldDesc(const StatFieldDesc& other)
+        : m_name(other.m_name), m_schemaName(other.m_schemaName), m_metadataName(other.m_metadataName),
+        m_metadataDesc(nullptr), m_fieldName(other.m_fieldName), m_fieldDesc(),
+        m_opName(other.m_opName), m_pMetadataStream(nullptr) {}
+    explicit StatFieldDesc(StatFieldDesc&& other)
+        : m_name(std::move(other.m_name)), m_schemaName(std::move(other.m_schemaName)),
+        m_metadataName(std::move(other.m_metadataName)), m_metadataDesc(std::move(nullptr)),
+        m_fieldName(std::move(other.m_fieldName)), m_fieldDesc(std::move(other.m_fieldDesc)),
+        m_opName(std::move(other.m_opName)), m_pMetadataStream(nullptr) {}
+    StatFieldDesc()
+        : m_name(""), m_schemaName(""), m_metadataName(""),
+        m_metadataDesc(nullptr), m_fieldName(""), m_fieldDesc(),
+        m_opName(""), m_pMetadataStream(nullptr) {}
+    ~StatFieldDesc() {}
+
+    StatFieldDesc& operator=(const StatFieldDesc& other);
+    StatFieldDesc& operator=(StatFieldDesc&& other);
+
+    const std::string& getName() const { return m_name; }
+    const std::string& getSchemaName() const { return m_schemaName; }
+    const std::string& getMetadataName() const { return m_metadataName; }
+    std::shared_ptr< MetadataDesc > getMetadataDesc() const { return m_metadataDesc; }
+    const std::string& getFieldName() const { return m_fieldDesc.name; }
+    const std::string& getOpName() const { return m_opName; }
+
+public:
+    void setStream(MetadataStream* pMetadataStream);
+    MetadataStream* getStream() const { return m_pMetadataStream; }
+
+private:
+    std::string m_name;
+    std::string m_schemaName;
+    std::string m_metadataName;
+    std::shared_ptr< MetadataDesc > m_metadataDesc;
+    std::string m_fieldName;
+    FieldDesc m_fieldDesc;
+    std::string m_opName;
+    MetadataStream* m_pMetadataStream;
+};
+
+std::string StatField::getName() const
+{ 
+    return m_desc->getName();
+}
+
+std::shared_ptr< MetadataDesc > StatField::getMetadataDesc() const
+{
+    return m_desc->getMetadataDesc();
+}
+
+std::string StatField::getFieldName() const
+{
+    return m_desc->getFieldName();
+}
+
+std::string StatField::getOpName() const
+{
+    return m_desc->getOpName();
+}
+
+MetadataStream* StatField::getStream() const
+{
+    return m_desc->getStream();
+}
 
 StatField::StatField(
         const std::string& name,
@@ -533,7 +592,7 @@ StatField::StatField(
         const std::string& metadataName,
         const std::string& fieldName,
         const std::string& opName )
-    : m_desc( name, schemaName, metadataName, fieldName, opName )
+    : m_desc( new StatFieldDesc( name, schemaName, metadataName, fieldName, opName ) )
     , m_op( StatOpFactory::create( opName ))
     , m_state( StatState::UpToDate )
     , m_isActive( false )
@@ -541,7 +600,7 @@ StatField::StatField(
 }
 
 StatField::StatField( const StatField& other )
-    : m_desc( other.m_desc )
+    : m_desc( new StatFieldDesc( *other.m_desc) )
     , m_op( (other.m_op != nullptr) ? StatOpFactory::create( other.m_op->name() ) : nullptr )
     , m_state( other.m_state )
     , m_isActive( other.m_isActive )
@@ -608,7 +667,7 @@ StatField& StatField::operator=( const StatField& other )
 {
     setStream( nullptr );
 
-    m_desc = other.m_desc;
+    m_desc.reset( new StatFieldDesc( *other.m_desc ) );
 
     delete m_op;
     m_op = (other.m_op != nullptr) ? StatOpFactory::create( other.m_op->name() ) : nullptr;
@@ -707,16 +766,202 @@ void StatField::StatFieldDesc::setStream( MetadataStream* pMetadataStream )
 
 void StatField::setStream( MetadataStream* pMetadataStream )
 {
-    m_desc.setStream( pMetadataStream );
+    m_desc->setStream( pMetadataStream );
     m_isActive = bool( pMetadataStream != nullptr );
 }
 
-// class Stat (StatDesc)
+// class Stat (StatDesc, StatWorker)
+
+class Stat::StatWorker
+{
+public:
+    explicit StatWorker(Stat* stat)
+        : m_stat(stat)
+        , m_wakeupForced(false)
+        , m_updateScheduled(false)
+        , m_rescanScheduled(false)
+        , m_exitScheduled(false)
+        , m_exitImmediate(false)
+    {
+        m_worker = std::thread(&StatWorker::operator(), this);
+    }
+    ~StatWorker()
+    {
+        scheduleExit();
+        m_worker.join();
+        m_stat = nullptr;
+    }
+    void operator()()
+    {
+        // worker is starting
+        for (;;)
+        {
+            // worker is going to sleep
+            {
+                std::unique_lock< std::mutex > lock(m_lock);
+                if (m_stat->getUpdateMode() == StatUpdateMode::OnTimer)
+                {
+                    const unsigned tmo = std::max(m_stat->getUpdateTimeout(), (unsigned)10);
+                    bool awaken = false;
+                    do {
+                        awaken = m_signal.wait_for(lock, std::chrono::milliseconds(tmo), [&]
+                        {
+                            return m_exitScheduled ||
+                                m_rescanScheduled ||
+                                m_wakeupForced ||
+                                (m_updateScheduled && !m_items.empty());
+                        });
+                    } while (!awaken);
+                }
+                else
+                {
+                    m_signal.wait(lock, [&]
+                    {
+                        return m_exitScheduled ||
+                            m_rescanScheduled ||
+                            m_wakeupForced ||
+                            (m_updateScheduled && !m_items.empty());
+                    });
+                }
+                m_wakeupForced = false;
+                if (m_exitScheduled && m_exitImmediate)
+                    break;
+            }
+            // worker has awaken
+            if (m_rescanScheduled)
+            {
+                // rescan
+                if (m_stat != nullptr)
+                    m_stat->rescan();
+                {
+                    std::unique_lock< std::mutex > lock(m_lock);
+                    m_rescanScheduled = false;
+                }
+                if (m_stat != nullptr)
+                    m_stat->resetState();
+            }
+            else if (m_updateScheduled)
+            {
+                std::shared_ptr< Metadata > metadata;
+                while (tryPop(metadata))
+                {
+                    // processing of item
+                    if (m_stat != nullptr)
+                        m_stat->handle(metadata);
+                }
+                        {
+                            std::unique_lock< std::mutex > lock(m_lock);
+                            m_updateScheduled = false;
+                        }
+                        if (m_stat != nullptr)
+                            m_stat->resetState();
+            }
+                    {
+                        std::unique_lock< std::mutex > lock(m_lock);
+                        if (m_exitScheduled && !m_exitImmediate)
+                            break;
+                    }
+        }
+        // worker is finishing
+    }
+    void scheduleUpdate(const std::shared_ptr< Metadata > val, bool doWake = true)
+    {
+        std::unique_lock< std::mutex > lock(m_lock);
+        m_items.push(val);
+        if (doWake && !m_updateScheduled && !m_items.empty())
+        {
+            m_updateScheduled = true;
+            m_signal.notify_one();
+        }
+    }
+    void scheduleRescan(bool doWake = true)
+    {
+        std::unique_lock< std::mutex > lock(m_lock);
+        if (doWake && !m_rescanScheduled)
+        {
+            m_rescanScheduled = true;
+            m_signal.notify_one();
+        }
+    }
+    void scheduleExit(bool doImmediate = false)
+    {
+        std::unique_lock< std::mutex > lock(m_lock);
+        if (!m_exitScheduled)
+        {
+            m_exitScheduled = true;
+            m_exitImmediate = doImmediate;
+            m_signal.notify_one();
+        }
+    }
+    void wakeup(bool doForceWakeup = false)
+    {
+        std::unique_lock< std::mutex > lock(m_lock);
+        m_updateScheduled = (m_updateScheduled || !m_items.empty());
+        m_wakeupForced = doForceWakeup;
+        if (m_exitScheduled || m_updateScheduled | m_wakeupForced)
+        {
+            m_signal.notify_one();
+        }
+    }
+    void reset()
+    {
+        std::unique_lock< std::mutex > lock(m_lock);
+        if (!m_items.empty())
+            std::queue< std::shared_ptr< Metadata >>().swap(m_items);
+        m_updateScheduled = false;
+        m_rescanScheduled = false;
+        m_exitScheduled = false;
+        m_exitImmediate = false;
+    }
+
+private:
+    bool tryPop(std::shared_ptr< Metadata >& metadata)
+    {
+        std::unique_lock< std::mutex > lock(m_lock);
+        if (!m_items.empty()) {
+            metadata = m_items.front();
+            m_items.pop();
+            return true;
+        }
+        m_updateScheduled = false;
+        return false;
+    }
+
+private:
+    Stat* m_stat;
+    std::thread m_worker;
+    std::queue< std::shared_ptr< Metadata >> m_items;
+    std::atomic< bool > m_wakeupForced;
+    std::atomic< bool > m_updateScheduled;
+    std::atomic< bool > m_rescanScheduled;
+    std::atomic< bool > m_exitScheduled;
+    std::atomic< bool > m_exitImmediate;
+    std::condition_variable m_signal;
+    std::mutex m_lock;
+};
+
+class Stat::StatDesc
+{
+public:
+    explicit StatDesc(const std::string& name) : m_name(name) {}
+    explicit StatDesc(const StatDesc& other) : m_name(other.m_name) {}
+    explicit StatDesc(StatDesc&& other) : m_name(std::move(other.m_name)) {}
+    ~StatDesc() {}
+
+    StatDesc& operator=(const StatDesc& other) { m_name = other.m_name; return *this; }
+    StatDesc& operator=(StatDesc&& other) { m_name = std::move(other.m_name); return *this; }
+
+    const std::string& getName() const { return m_name; }
+
+private:
+    std::string m_name;
+};
+
 
 Stat::Stat( const std::string& name, const std::vector< StatField >& fields, StatUpdateMode::Type updateMode )
-    : m_desc( name )
+    : m_desc( new StatDesc(name) )
     , m_fields( fields )
-    , m_worker( this )
+    , m_worker( new StatWorker(this) )
     , m_updateMode( updateMode )
     , m_state( StatState::UpToDate )
     , m_isActive( false )
@@ -724,9 +969,9 @@ Stat::Stat( const std::string& name, const std::vector< StatField >& fields, Sta
 }
 
 Stat::Stat( const Stat& other )
-    : m_desc( other.m_desc )
+    : m_desc( new StatDesc(*other.m_desc) )
     , m_fields( other.m_fields )
-    , m_worker( this )
+    , m_worker( new StatWorker(this) )
     , m_updateMode( other.m_updateMode )
     , m_state( other.m_state )
     , m_isActive( other.m_isActive )
@@ -736,7 +981,7 @@ Stat::Stat( const Stat& other )
 Stat::Stat( Stat&& other )
     : m_desc( std::move( other.m_desc ))
     , m_fields( std::move( other.m_fields ))
-    , m_worker( this )
+    , m_worker(new StatWorker(this))
     , m_updateMode( other.m_updateMode )
     , m_state( other.m_state )
     , m_isActive( other.m_isActive )
@@ -749,10 +994,10 @@ Stat::~Stat()
 
 Stat& Stat::operator=( const Stat& other )
 {
-    m_worker.reset();
+    m_worker->reset();
 
     setStream( nullptr );
-    m_desc       = other.m_desc;
+    m_desc.reset( new StatDesc(*other.m_desc) );
     m_fields     = other.m_fields;
     m_updateMode = other.m_updateMode;
     m_state      = other.m_state;
@@ -764,7 +1009,7 @@ Stat& Stat::operator=( const Stat& other )
 
 Stat& Stat::operator=( Stat&& other )
 {
-    m_worker.reset();
+    m_worker->reset();
 
     setStream( nullptr );
     m_desc       = std::move( other.m_desc );
@@ -775,6 +1020,11 @@ Stat& Stat::operator=( Stat&& other )
     setStream( other.getStream() );
 
     return *this;
+}
+
+std::string Stat::getName() const
+{
+    return m_desc->getName();
 }
 
 void Stat::notify( StatAction::Type action, std::shared_ptr< Metadata > metadata )
@@ -790,12 +1040,12 @@ void Stat::notify( StatAction::Type action, std::shared_ptr< Metadata > metadata
                 break;
             case StatUpdateMode::Manual:
                 m_state = StatState::NeedUpdate;
-                m_worker.scheduleUpdate( metadata, false );
+                m_worker->scheduleUpdate( metadata, false );
                 break;
             case StatUpdateMode::OnAdd:
             case StatUpdateMode::OnTimer:
                 m_state = StatState::NeedUpdate;
-                m_worker.scheduleUpdate( metadata, true );
+                m_worker->scheduleUpdate( metadata, true );
                 break;
             }
             break;
@@ -810,7 +1060,7 @@ void Stat::notify( StatAction::Type action, std::shared_ptr< Metadata > metadata
             case StatUpdateMode::OnAdd:
             case StatUpdateMode::OnTimer:
                 m_state = StatState::NeedRescan;
-                m_worker.scheduleRescan();
+                m_worker->scheduleRescan();
                 break;
             }
             break;
@@ -832,12 +1082,12 @@ void Stat::update( bool doRescan, bool doWait )
             if( doRescan )
             {
                 m_state = StatState::NeedRescan;
-                m_worker.scheduleRescan();
+                m_worker->scheduleRescan();
             }
             else
             {
                 m_state = StatState::NeedUpdate;
-                m_worker.wakeup();
+                m_worker->wakeup();
             }
             break;
         }
@@ -884,7 +1134,7 @@ void Stat::setUpdateMode( StatUpdateMode::Type updateMode )
         case StatUpdateMode::OnAdd:
         case StatUpdateMode::OnTimer:
             m_updateMode = updateMode;
-            m_worker.wakeup( true );
+            m_worker->wakeup( true );
             break;
         default:
             VMF_EXCEPTION( vmf::NotImplementedException, "Unknown update mode" );
