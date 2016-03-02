@@ -512,13 +512,87 @@ StatOpFactory::UserOpMap& StatOpFactory::getClassMap()
 
 // class StatField (StatFieldDesc)
 
+class StatField::StatFieldDesc
+{
+public:
+    StatFieldDesc(const std::string& name, const std::string& schemaName,
+        const std::string& metadataName, const std::string& fieldName,
+        const std::string& opName)
+        : m_name(name), m_schemaName(schemaName), m_metadataName(metadataName),
+        m_metadataDesc(nullptr), m_fieldName(fieldName), m_fieldDesc(),
+        m_opName(opName), m_pMetadataStream(nullptr) {}
+    explicit StatFieldDesc(const StatFieldDesc& other)
+        : m_name(other.m_name), m_schemaName(other.m_schemaName), m_metadataName(other.m_metadataName),
+        m_metadataDesc(nullptr), m_fieldName(other.m_fieldName), m_fieldDesc(),
+        m_opName(other.m_opName), m_pMetadataStream(nullptr) {}
+    explicit StatFieldDesc(StatFieldDesc&& other)
+        : m_name(std::move(other.m_name)), m_schemaName(std::move(other.m_schemaName)),
+        m_metadataName(std::move(other.m_metadataName)), m_metadataDesc(std::move(nullptr)),
+        m_fieldName(std::move(other.m_fieldName)), m_fieldDesc(std::move(other.m_fieldDesc)),
+        m_opName(std::move(other.m_opName)), m_pMetadataStream(nullptr) {}
+    StatFieldDesc()
+        : m_name(""), m_schemaName(""), m_metadataName(""),
+        m_metadataDesc(nullptr), m_fieldName(""), m_fieldDesc(),
+        m_opName(""), m_pMetadataStream(nullptr) {}
+    ~StatFieldDesc() {}
+
+    StatFieldDesc& operator=(const StatFieldDesc& other);
+    StatFieldDesc& operator=(StatFieldDesc&& other);
+
+    const std::string& getName() const { return m_name; }
+    const std::string& getSchemaName() const { return m_schemaName; }
+    const std::string& getMetadataName() const { return m_metadataName; }
+    std::shared_ptr< MetadataDesc > getMetadataDesc() const { return m_metadataDesc; }
+    const std::string& getFieldName() const { return m_fieldDesc.name; }
+    const std::string& getOpName() const { return m_opName; }
+
+public:
+    void setStream(MetadataStream* pMetadataStream);
+    MetadataStream* getStream() const { return m_pMetadataStream; }
+
+private:
+    std::string m_name;
+    std::string m_schemaName;
+    std::string m_metadataName;
+    std::shared_ptr< MetadataDesc > m_metadataDesc;
+    std::string m_fieldName;
+    FieldDesc m_fieldDesc;
+    std::string m_opName;
+    MetadataStream* m_pMetadataStream;
+};
+
+std::string StatField::getName() const
+{ 
+    return m_desc->getName();
+}
+
+std::shared_ptr< MetadataDesc > StatField::getMetadataDesc() const
+{
+    return m_desc->getMetadataDesc();
+}
+
+std::string StatField::getFieldName() const
+{
+    return m_desc->getFieldName();
+}
+
+std::string StatField::getOpName() const
+{
+    return m_desc->getOpName();
+}
+
+MetadataStream* StatField::getStream() const
+{
+    return m_desc->getStream();
+}
+
 StatField::StatField(
         const std::string& name,
         const std::string& schemaName,
         const std::string& metadataName,
         const std::string& fieldName,
         const std::string& opName )
-    : m_desc( name, schemaName, metadataName, fieldName, opName )
+    : m_desc( new StatFieldDesc( name, schemaName, metadataName, fieldName, opName ) )
     , m_op( StatOpFactory::create( opName ))
     , m_state( StatState::UpToDate )
     , m_isActive( false )
@@ -526,7 +600,7 @@ StatField::StatField(
 }
 
 StatField::StatField( const StatField& other )
-    : m_desc( other.m_desc )
+    : m_desc( new StatFieldDesc( *other.m_desc) )
     , m_op( (other.m_op != nullptr) ? StatOpFactory::create( other.m_op->name() ) : nullptr )
     , m_state( other.m_state )
     , m_isActive( other.m_isActive )
@@ -593,7 +667,7 @@ StatField& StatField::operator=( const StatField& other )
 {
     setStream( nullptr );
 
-    m_desc = other.m_desc;
+    m_desc.reset( new StatFieldDesc( *other.m_desc ) );
 
     delete m_op;
     m_op = (other.m_op != nullptr) ? StatOpFactory::create( other.m_op->name() ) : nullptr;
@@ -692,16 +766,202 @@ void StatField::StatFieldDesc::setStream( MetadataStream* pMetadataStream )
 
 void StatField::setStream( MetadataStream* pMetadataStream )
 {
-    m_desc.setStream( pMetadataStream );
+    m_desc->setStream( pMetadataStream );
     m_isActive = bool( pMetadataStream != nullptr );
 }
 
-// class Stat (StatDesc)
+// class Stat (StatDesc, StatWorker)
+
+class Stat::StatWorker
+{
+public:
+    explicit StatWorker(Stat* stat)
+        : m_stat(stat)
+        , m_wakeupForced(false)
+        , m_updateScheduled(false)
+        , m_rescanScheduled(false)
+        , m_exitScheduled(false)
+        , m_exitImmediate(false)
+    {
+        m_worker = std::thread(&StatWorker::operator(), this);
+    }
+    ~StatWorker()
+    {
+        scheduleExit();
+        m_worker.join();
+        m_stat = nullptr;
+    }
+    void operator()()
+    {
+        // worker is starting
+        for (;;)
+        {
+            // worker is going to sleep
+            {
+                std::unique_lock< std::mutex > lock(m_lock);
+                if (m_stat->getUpdateMode() == StatUpdateMode::OnTimer)
+                {
+                    const unsigned tmo = std::max(m_stat->getUpdateTimeout(), (unsigned)10);
+                    bool awaken = false;
+                    do {
+                        awaken = m_signal.wait_for(lock, std::chrono::milliseconds(tmo), [&]
+                        {
+                            return m_exitScheduled ||
+                                m_rescanScheduled ||
+                                m_wakeupForced ||
+                                (m_updateScheduled && !m_items.empty());
+                        });
+                    } while (!awaken);
+                }
+                else
+                {
+                    m_signal.wait(lock, [&]
+                    {
+                        return m_exitScheduled ||
+                            m_rescanScheduled ||
+                            m_wakeupForced ||
+                            (m_updateScheduled && !m_items.empty());
+                    });
+                }
+                m_wakeupForced = false;
+                if (m_exitScheduled && m_exitImmediate)
+                    break;
+            }
+            // worker has awaken
+            if (m_rescanScheduled)
+            {
+                // rescan
+                if (m_stat != nullptr)
+                    m_stat->rescan();
+                {
+                    std::unique_lock< std::mutex > lock(m_lock);
+                    m_rescanScheduled = false;
+                }
+                if (m_stat != nullptr)
+                    m_stat->resetState();
+            }
+            else if (m_updateScheduled)
+            {
+                std::shared_ptr< Metadata > metadata;
+                while (tryPop(metadata))
+                {
+                    // processing of item
+                    if (m_stat != nullptr)
+                        m_stat->handle(metadata);
+                }
+                        {
+                            std::unique_lock< std::mutex > lock(m_lock);
+                            m_updateScheduled = false;
+                        }
+                        if (m_stat != nullptr)
+                            m_stat->resetState();
+            }
+                    {
+                        std::unique_lock< std::mutex > lock(m_lock);
+                        if (m_exitScheduled && !m_exitImmediate)
+                            break;
+                    }
+        }
+        // worker is finishing
+    }
+    void scheduleUpdate(const std::shared_ptr< Metadata > val, bool doWake = true)
+    {
+        std::unique_lock< std::mutex > lock(m_lock);
+        m_items.push(val);
+        if (doWake && !m_updateScheduled && !m_items.empty())
+        {
+            m_updateScheduled = true;
+            m_signal.notify_one();
+        }
+    }
+    void scheduleRescan(bool doWake = true)
+    {
+        std::unique_lock< std::mutex > lock(m_lock);
+        if (doWake && !m_rescanScheduled)
+        {
+            m_rescanScheduled = true;
+            m_signal.notify_one();
+        }
+    }
+    void scheduleExit(bool doImmediate = false)
+    {
+        std::unique_lock< std::mutex > lock(m_lock);
+        if (!m_exitScheduled)
+        {
+            m_exitScheduled = true;
+            m_exitImmediate = doImmediate;
+            m_signal.notify_one();
+        }
+    }
+    void wakeup(bool doForceWakeup = false)
+    {
+        std::unique_lock< std::mutex > lock(m_lock);
+        m_updateScheduled = (m_updateScheduled || !m_items.empty());
+        m_wakeupForced = doForceWakeup;
+        if (m_exitScheduled || m_updateScheduled | m_wakeupForced)
+        {
+            m_signal.notify_one();
+        }
+    }
+    void reset()
+    {
+        std::unique_lock< std::mutex > lock(m_lock);
+        if (!m_items.empty())
+            std::queue< std::shared_ptr< Metadata >>().swap(m_items);
+        m_updateScheduled = false;
+        m_rescanScheduled = false;
+        m_exitScheduled = false;
+        m_exitImmediate = false;
+    }
+
+private:
+    bool tryPop(std::shared_ptr< Metadata >& metadata)
+    {
+        std::unique_lock< std::mutex > lock(m_lock);
+        if (!m_items.empty()) {
+            metadata = m_items.front();
+            m_items.pop();
+            return true;
+        }
+        m_updateScheduled = false;
+        return false;
+    }
+
+private:
+    Stat* m_stat;
+    std::thread m_worker;
+    std::queue< std::shared_ptr< Metadata >> m_items;
+    std::atomic< bool > m_wakeupForced;
+    std::atomic< bool > m_updateScheduled;
+    std::atomic< bool > m_rescanScheduled;
+    std::atomic< bool > m_exitScheduled;
+    std::atomic< bool > m_exitImmediate;
+    std::condition_variable m_signal;
+    std::mutex m_lock;
+};
+
+class Stat::StatDesc
+{
+public:
+    explicit StatDesc(const std::string& name) : m_name(name) {}
+    explicit StatDesc(const StatDesc& other) : m_name(other.m_name) {}
+    explicit StatDesc(StatDesc&& other) : m_name(std::move(other.m_name)) {}
+    ~StatDesc() {}
+
+    StatDesc& operator=(const StatDesc& other) { m_name = other.m_name; return *this; }
+    StatDesc& operator=(StatDesc&& other) { m_name = std::move(other.m_name); return *this; }
+
+    const std::string& getName() const { return m_name; }
+
+private:
+    std::string m_name;
+};
+
 
 Stat::Stat( const std::string& name, const std::vector< StatField >& fields, StatUpdateMode::Type updateMode )
-    : m_desc( name )
+    : m_desc( new StatDesc(name) )
     , m_fields( fields )
-    , m_worker( this )
+    , m_worker( new StatWorker(this) )
     , m_updateMode( updateMode )
     , m_state( StatState::UpToDate )
     , m_isActive( false )
@@ -709,9 +969,9 @@ Stat::Stat( const std::string& name, const std::vector< StatField >& fields, Sta
 }
 
 Stat::Stat( const Stat& other )
-    : m_desc( other.m_desc )
+    : m_desc( new StatDesc(*other.m_desc) )
     , m_fields( other.m_fields )
-    , m_worker( this )
+    , m_worker( new StatWorker(this) )
     , m_updateMode( other.m_updateMode )
     , m_state( other.m_state )
     , m_isActive( other.m_isActive )
@@ -721,7 +981,7 @@ Stat::Stat( const Stat& other )
 Stat::Stat( Stat&& other )
     : m_desc( std::move( other.m_desc ))
     , m_fields( std::move( other.m_fields ))
-    , m_worker( this )
+    , m_worker(new StatWorker(this))
     , m_updateMode( other.m_updateMode )
     , m_state( other.m_state )
     , m_isActive( other.m_isActive )
@@ -734,10 +994,10 @@ Stat::~Stat()
 
 Stat& Stat::operator=( const Stat& other )
 {
-    m_worker.reset();
+    m_worker->reset();
 
     setStream( nullptr );
-    m_desc       = other.m_desc;
+    m_desc.reset( new StatDesc(*other.m_desc) );
     m_fields     = other.m_fields;
     m_updateMode = other.m_updateMode;
     m_state      = other.m_state;
@@ -749,7 +1009,7 @@ Stat& Stat::operator=( const Stat& other )
 
 Stat& Stat::operator=( Stat&& other )
 {
-    m_worker.reset();
+    m_worker->reset();
 
     setStream( nullptr );
     m_desc       = std::move( other.m_desc );
@@ -760,6 +1020,11 @@ Stat& Stat::operator=( Stat&& other )
     setStream( other.getStream() );
 
     return *this;
+}
+
+std::string Stat::getName() const
+{
+    return m_desc->getName();
 }
 
 void Stat::notify( StatAction::Type action, std::shared_ptr< Metadata > metadata )
@@ -775,12 +1040,12 @@ void Stat::notify( StatAction::Type action, std::shared_ptr< Metadata > metadata
                 break;
             case StatUpdateMode::Manual:
                 m_state = StatState::NeedUpdate;
-                m_worker.scheduleUpdate( metadata, false );
+                m_worker->scheduleUpdate( metadata, false );
                 break;
             case StatUpdateMode::OnAdd:
             case StatUpdateMode::OnTimer:
                 m_state = StatState::NeedUpdate;
-                m_worker.scheduleUpdate( metadata, true );
+                m_worker->scheduleUpdate( metadata, true );
                 break;
             }
             break;
@@ -795,7 +1060,7 @@ void Stat::notify( StatAction::Type action, std::shared_ptr< Metadata > metadata
             case StatUpdateMode::OnAdd:
             case StatUpdateMode::OnTimer:
                 m_state = StatState::NeedRescan;
-                m_worker.scheduleRescan();
+                m_worker->scheduleRescan();
                 break;
             }
             break;
@@ -817,12 +1082,12 @@ void Stat::update( bool doRescan, bool doWait )
             if( doRescan )
             {
                 m_state = StatState::NeedRescan;
-                m_worker.scheduleRescan();
+                m_worker->scheduleRescan();
             }
             else
             {
                 m_state = StatState::NeedUpdate;
-                m_worker.wakeup();
+                m_worker->wakeup();
             }
             break;
         }
@@ -869,7 +1134,7 @@ void Stat::setUpdateMode( StatUpdateMode::Type updateMode )
         case StatUpdateMode::OnAdd:
         case StatUpdateMode::OnTimer:
             m_updateMode = updateMode;
-            m_worker.wakeup( true );
+            m_worker->wakeup( true );
             break;
         default:
             VMF_EXCEPTION( vmf::NotImplementedException, "Unknown update mode" );
