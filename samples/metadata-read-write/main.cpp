@@ -69,10 +69,13 @@ int main(int argc, char *argv[])
 
     const string FILE_NAME = "global_test.avi";
     const string META_SOURCE_NAME = "test-id";
-    const string GPS_DESC = "gps";
-    const string GPS_COORD_FIELD = "GPS";
-    const string GPS_TIME_FIELD = "Time";
-    const string GPS_SCHEMA_NAME = "gps_schema";
+
+    const string GPS_SCHEMA_NAME = "GPS schema";
+    const string GPS_DESC_NAME   = "GPS data";
+    const string GPS_FIELD_COORD = "gps";
+    const string GPS_FIELD_TIME  = "time";
+    const string GPS_FIELD_NOTE  = "note";
+    
     const string GPS_METADATA_ITEM1 = "lat=53.78,lng=132.46";
     const string GPS_METADATA_ITEM2 = "lat=53.28,lng=131.87";
     const string GPS_METADATA_ITEM3 = "lat=52.95,lng=131.41";
@@ -89,17 +92,25 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    // Create a GPS metadata field descriptions
-    vector<FieldDesc> fieldDesc;
-
-    fieldDesc.push_back(FieldDesc(GPS_COORD_FIELD)); // GPS coordinate as string
-    fieldDesc.push_back(FieldDesc(GPS_TIME_FIELD)); // Associated time as string
-    
     // Create GPS metadata description
-    shared_ptr<MetadataDesc> gpsDesc(new MetadataDesc(GPS_DESC, fieldDesc));
+    shared_ptr<MetadataDesc> gpsDesc(
+);
 
     // Create GPS metadata schema
-    shared_ptr<MetadataSchema> gpsSchema(new MetadataSchema(GPS_SCHEMA_NAME));
+    shared_ptr<MetadataSchema> gpsSchema(
+        new MetadataSchema(
+            GPS_SCHEMA_NAME,
+            { // desc-s
+                MetadataDesc( // GPS metadata description
+                    GPS_DESC_NAME,
+                    { // fields
+                        FieldDesc(GPS_FIELD_COORD),
+                        FieldDesc(GPS_FIELD_TIME),
+                        FieldDesc("note", Variant::type_string, true),
+                    }
+                ),
+            }
+    ));
 
     // Add description to the schema
     gpsSchema->add(gpsDesc);
@@ -119,8 +130,8 @@ int main(int argc, char *argv[])
     gpsMetadata = shared_ptr<Metadata>(new Metadata(gpsDesc));
 
     // Fill item fields
-    gpsMetadata->push_back(FieldValue(GPS_COORD_FIELD, GPS_METADATA_ITEM1));
-    gpsMetadata->push_back(FieldValue(GPS_TIME_FIELD, t));
+    gpsMetadata->push_back(FieldValue(GPS_FIELD_COORD, GPS_METADATA_ITEM1));
+    gpsMetadata->push_back(FieldValue(GPS_FIELD_TIME, t));
 
     // Add to metadata a new item
     mdStream.add(gpsMetadata);
@@ -129,24 +140,24 @@ int main(int argc, char *argv[])
     cout << "Adding metadata's item '" << GPS_METADATA_ITEM2 << "' with associated time " << t << endl;
 
     gpsMetadata = shared_ptr<Metadata>(new Metadata(gpsDesc));
-    gpsMetadata->push_back(FieldValue(GPS_COORD_FIELD, GPS_METADATA_ITEM2));
-    gpsMetadata->push_back(FieldValue(GPS_TIME_FIELD, t));
+    gpsMetadata->push_back(FieldValue(GPS_FIELD_COORD, GPS_METADATA_ITEM2));
+    gpsMetadata->push_back(FieldValue(GPS_FIELD_TIME, t));
     mdStream.add(gpsMetadata);
 
     t = "21.02.2013 21:02";
     cout << "Adding metadata's item '" << GPS_METADATA_ITEM3 << "' with associated time " << t << endl;
 
     gpsMetadata = shared_ptr<Metadata>(new Metadata(gpsDesc));
-    gpsMetadata->push_back(FieldValue(GPS_COORD_FIELD, GPS_METADATA_ITEM3));
-    gpsMetadata->push_back(FieldValue(GPS_TIME_FIELD, t));
+    gpsMetadata->push_back(FieldValue(GPS_FIELD_COORD, GPS_METADATA_ITEM3));
+    gpsMetadata->push_back(FieldValue(GPS_FIELD_TIME, t));
     mdStream.add(gpsMetadata);
 
     t = "21.02.2013 23:19";
     cout << "Adding metadata's item '" << GPS_METADATA_ITEM4 << "' with associated time " << t << endl;
 
     gpsMetadata = shared_ptr<Metadata>(new Metadata(gpsDesc));
-    gpsMetadata->push_back(FieldValue(GPS_COORD_FIELD, GPS_METADATA_ITEM4));
-    gpsMetadata->push_back(FieldValue(GPS_TIME_FIELD, t));
+    gpsMetadata->push_back(FieldValue(GPS_FIELD_COORD, GPS_METADATA_ITEM4));
+    gpsMetadata->push_back(FieldValue(GPS_FIELD_TIME, t));
     mdStream.add(gpsMetadata);
 
     cout << "Save metadata" << endl << endl;
@@ -182,10 +193,10 @@ int main(int argc, char *argv[])
         cout << "Getting item " << i << endl;
         auto metadataItem = dataSet[i];
 
-        string coord = metadataItem->getFieldValue(GPS_COORD_FIELD);
+        string coord = metadataItem->getFieldValue(GPS_FIELD_COORD);
         cout << "\tGPS coordinates are: " << coord << endl;
 
-        string time = metadataItem->getFieldValue(GPS_TIME_FIELD);
+        string time = metadataItem->getFieldValue(GPS_FIELD_TIME);
         cout << "\tAssociated time is: " << time << endl;
     }
 
